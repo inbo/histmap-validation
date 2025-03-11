@@ -1,0 +1,465 @@
+---
+title: "Aanpassing functies"
+author: "Robrecht Dockx"
+format: pdf
+editor: source
+---
+
+# Aanpassing van de de formules aan de data
+
+```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE}
+library(tidyverse)
+library(terra)
+library(git2rdata)
+library(plotly)
+library(sf)
+library(INBOtheme)
+library(assertthat)
+library(caret)
+library(rprojroot)
+library(devtools)
+devtools::install_github("gbganalyst/forstringr")
+library(forstringr)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                  comment = "", error = FALSE)
+
+git_root <- rprojroot::find_root(rprojroot::is_git_root)
+source(file.path(git_root, "source/scripts/nca_functions.R"))
+
+data_folder <-  find_root_file("data",
+                             criterion = has_file(
+                               "histmap_validation_quarto.Rproj"))
+
+data <- read.csv(paste0(data_folder, "/legende_attribuuttabel.xlsx - validatiepunten_timeseries.csv"), 
+                        header = TRUE, encoding = "UTF-8")
+
+data_LU <- read.csv(paste0(data_folder, "/raster_report_LUC.xlsx - report land use change categori.csv"), 
+                        header = TRUE, encoding = "UTF-8")
+
+# Functions 
+
+
+
+
+
+```
+
+# De data
+
+Gedurende de analyses zal er gebruik gemaakt worden van twee datasets: 
+
+- Een [dataset](https://docs.google.com/spreadsheets/d/1Qk7hgajuzkvmWGGcqCOz3KUxLxcIr0KE/edit?gid=1736581617#gid=1736581617) met de geobserveerde waarde en referentiewaarde. 
+
+Deze dataset bevat `r dim(data)[1]` observaties en `r dim(data)[2]` variabelen. De observaties vertegenwoordigen punten die gestratificeerd zijn getrokken uit een puntenwolk. Voor elk van de 30 verschillende strata, waarbij een stratum een type landgebruik representeert, werden punten getrokken. De punten werden binnen elk stratum getrokken op volgorde van toenemende ID. In totaal werden er 2448 punten geselecteerd uit de puntenwolk en op de kaart van 1969 als uitgangspunt. Alle punten in de overlay met een landgebruik dat tussen 1778 en 1969 niet veranderde, zijn gevalideerd. Voor de punten die behoren tot klassen met landgebruik dat tussen 1778 en 1969 wel veranderde en waarvan minimaal 10 punten in de overlay voorkomen, werd 30% gevalideerd (dus minimaal 3 punten). De belangrijkste variabelen zijn `r knitr::combine_words(colnames(data)[c(dim(data)[2]-1, dim(data)[2])], and = " en ")`, welke respectievelijk de referentiewaarde en de geobserveerde waarde aangeven.
+
+- Een [dataset](https://docs.google.com/spreadsheets/d/1yI-kd37vwDwbLmGGfeZnF1-fiEj1Gzot/edit?gid=1403611980#gid=1403611980) Met alle mogelijke veranderingen in landgebruik (LU) zijn er in totaal $9^4$ (`r 10**4`) combinaties, aangezien er 9 verschillende landgebruikstypes en 4 verschillende tijdstippen zijn. De dataset bevat echter slechts `r dim(data_lu)[1]` van deze mogelijkheden. Voor elke combinatie worden de totale oppervlakte (in $m^2$ en ha) en de cumulatieve oppervlakte (in ha en %) weergegeven.
+
+```{r data_cleaning}
+cols <- c("X1850_true", 
+          "X1904_tru", 
+          "X1939_tru", 
+          "X1981_tru", 
+          "X1989_tru", 
+          "X1774_true", 
+          "X1873_true", 
+          "X1969_true", 
+          "ref")
+new_cols <- c("1850", 
+          "year_1904", 
+          "year_1939", 
+          "year_1981", 
+          "year_1989", 
+          "year_1774", 
+          "year_1873", 
+          "year_1969", 
+          "year_2022")
+data <- data %>%
+  mutate(ref = as.integer(
+    str_sub(
+      as.character(
+        LU_2022_1969_1873_1774_pred), start = 1, end = 1))) %>% 
+  rename_at(vars(cols),  ~ new_cols) %>% 
+  rename(reference = LU_1969_1873_1774_true, 
+         observed = LU_2022_1969_1873_1774_pred) %>% 
+  mutate(reference_comp = as.integer(paste0(year_1969,
+                                 year_1873, 
+                                 year_1774)), 
+         reference_comp4 = as.integer(paste0(year_2022, 
+                                  year_1969, 
+                                  year_1873, 
+                                  year_1774))) %>% 
+  mutate(
+  across(all_of(new_cols), 
+         ~case_when(.x == 9 ~ "water", 
+                    .x == 8 ~ "boomgaard",
+                    .x == 7 ~ "moeras",
+                    .x == 6 ~ "strand, slikke en schorre",
+                    .x == 5 ~ "heide en duinen",
+                    .x == 4 ~ "grasland",
+                    .x == 3 ~ "bos",
+                    .x == 2 ~ "bebouwing, tuin, infrastructuur",
+                    .x == 1 ~ "akker")
+           )) %>% 
+  mutate(
+    across(all_of(new_cols), as.factor))
+
+
+```
+
+## Initiële data verkenning 
+
+
+
+```{r sanity_checks}
+
+# Combination of seperate 3 year equal to the reference
+check1 <- identical(data$reference, data$reference_comp)
+
+# Ckeck length of reference 
+check2 <- length(which(nchar(data$reference_comp4) != 4)) == 0
+check2_fail <- data[which(nchar(data$reference_comp4) != 4),] %>% select(fid)
+data <- data %>% subset(!fid  %in% check2_fail$fid)
+
+# Check elements of observed
+check3 <- length(which(nchar(data$observed) != 4)) == 0
+check3_fail <- data[which(nchar(data$observed) != 4),]
+
+# Na in reference 
+check4 <- all(!is.na(data$reference))
+
+# Na in observed
+check5 <- all(!is.na(data$observed))
+
+```
+
+De volgende controles werden uitgevoerd om de consistentie van de gegevens te waarborgen:
+
+- Of de referentie identiek is aan de afzonderlijke referentiejaren
+
+De referentie was identiek aan de afzonderlijke referentiejaren. 
+
+- Of de lengte van de referentie precies 3 is
+
+Er werden `r dim(check2_fail)[1]` observaties gevonden met een waarde verschillend van 3 (fid zijn `r knitr:: combine_words(check2_fail$fid, and = " en ")`. 
+
+- Of de lengte van de observatie precies 4 is
+
+Er werden `r dim(check3_fail)[1]` observaties gevonden met een waarde verschillend van 4 (fid zijn `r knitr:: combine_words(check3_fail$fid, and = " en ")`.
+
+- Er werden geen ontbrekende data gedetecteerd voor de referentiewaarde en de geobserveerde waarden 
+
+```{r data_clean2}
+
+data <- data %>% 
+  mutate(observed3 = ifelse(nchar(observed) == 3, 
+                             observed, 
+                             str_right(observed, 3)), 
+         observed = ifelse(nchar(observed) == 4, 
+                                 observed, 
+                                 paste0("0", observed)), 
+         across(c(reference, observed3), as.factor))
+
+# Check elements of observed
+check3 <- length(which(nchar(data$observed) != 4)) == 0
+check3_fail <- data[which(nchar(data$observed) != 4),]
+
+```
+
+
+```{r calculate_accuracy_raw_data}
+
+# res1 <- calculate_accuracy(mapdata = data$observed3, refdata = data$reference)
+
+## the reference and the observed data do not have the same levels, they do have the same amount of levels but not the same levels. 
+
+## relevel to the same amount of levels 
+
+data <- data %>% mutate(
+  observed = factor(as.character(observed)), 
+  reference_comp4 = factor(as.character(reference_comp4))
+)
+
+intersect <- lubridate::intersect(levels(data$observed), levels(data$reference_comp4))
+difference <- outersect(levels(data$observed), levels(data$reference_comp4))
+all_levels <- lubridate::union(levels(data$observed), levels(data$reference_comp4))
+
+
+
+data <- data %>% mutate(
+  observed = factor(observed, levels = all_levels),
+  reference = factor(reference_comp4, levels = all_levels)
+)
+
+
+## Calculate on relveled variables
+
+res1 <- calculate_accuracy(mapdata = data$observed, refdata = data$reference)
+
+round(100 * unname(res1$overall["Accuracy"]), digits = 2)
+# UA PA
+# UA = precision (this does NOT equal specificity) = positive predictive value
+# PA = recall = sensitivity = true positive fraction
+# als de waarde voor SP en SE, PPV, NPV NA wil dit zeggen dat ze eigenlijk 0 is (teller = 0) 
+# bij NAN kan hij ze niet bepalen (noemer = 0)
+t(res1$byClass) |> round(digits = 2)
+
+
+```
+
+  In totaal zijn er `r length(all_levels)**2` verschillende combinaties mogelijk en er zijn slechts `r dim(data)[1]` observaties. Dit geeft aanleiding tot een groot aantal ontbrekende en laag aantal observaties op zowel de diagonaal als niet diagonaal waarden van de error matrix.  
+  
+## Clustering
+
+```{r}
+clustering <- function(years = c(2022, 1969, 1873, 1774), 
+                       prediction = data$observed,
+                       reference = data$reference, 
+                       LU = "1",
+                       transition = "5555",
+                       clustering_year = 2022, 
+                       clustering_method = "mask_follow_up", 
+                       akker = 1, bebouwing = 2, bos = 3, 
+                       grasland = 4, heide = 5, strand = 6,
+                       moeras = 7, boomgaard = 8, water = 9, 
+                       reference_year = 1774){
+  
+  ### check properties of the clustering method
+  
+  # assert_that(length(clustering_method) == 1, 
+  #             msg = "Please provide 1 clustering method")
+  
+  assert_that(all(clustering_method %in% c("mask_follow_up", 
+                                       "mask_follow_up_intensity", 
+                                       "make_bin_change",
+                                       "change_frequency",
+                                       "transition", 
+                                       "presence")), 
+              msg = "clustering_method should be either 
+              mask_follow_up, mask_follow_up_intensity, make_bin_change, 
+              change_frequency, transition, presence")
+  
+  ### Check properties of coding LU
+  
+  assert_that(is.numeric(c(akker, bebouwing, bos, grasland, 
+                           heide, strand, moeras, boomgaard, 
+                           water)), 
+              msg = "The provided LU should be in numerical form")
+  
+  if(akker == 1 & bebouwing == 2 & bos == 3 & grasland == 4 &
+     heide == 5 & strand == 6 & moeras == 7 & boomgaard == 8 &
+     water == 9){
+  
+    message("Consistent coding of LU was used")
+    
+  } else{
+    warning("There is a change in LU coding")
+    }
+  
+  ### Check properties of supplied years
+  
+  assert_that(identical(years, sort(years, decreasing = TRUE)), 
+              msg = "Supplied years are not in descending order")
+   
+  assert_that(length(years) == 4, 
+              msg = "The number of provided years is different from 4")
+        
+  assert_that(all(years %in%  c(2022, 1969, 1873, 1774)), 
+              msg = "One ore more of the provided year(s) is/are not 
+              2022, 1969, 1873 or 1774")
+  
+  assert_that(is.numeric(years), 
+              msg = "The supplied years are not in numerical form")
+  
+  assert_that(is.numeric(reference_year) & is.numeric(clustering_year), 
+              msg = "Reference year and clustering year should be numeric")
+  
+  assert_that(clustering_year %in% years,
+              msg = "The clustering year is not in the provided years")
+  
+  assert_that(length(clustering_year) == 1, 
+              msg = "Provide 1 clusterig year")
+  
+  assert_that(reference_year %in% years,
+              msg = "The reference year is not in the provided years")
+  
+  assert_that(length(reference_year) == 1, 
+              msg = "Provide 1 reference year")
+  
+  assert_that(reference_year != clustering_year, 
+              msg = "Clustering year and reference year are the same")
+  
+  assert_that(clustering_year > reference_year, 
+              msg = "Clustering year is prior to reference year")
+  
+  ### Checking properties of the supplied data 
+  
+  assert_that(length(prediction) == length(reference), 
+               msg = "Prediction and reference are not of the same length")
+  
+  assert_that(all(levels(prediction) == levels(reference)), 
+              msg = "Prediction and reference have not the same levels")
+  
+  assert_that(all(nchar(as.character(prediction)) == 
+                    nchar(as.character(prediction[1]))), 
+              msg = "Some predictions do not have the same length")
+  
+  assert_that(all(nchar(as.character(reference)) == 
+                    nchar(as.character(reference[1]))), 
+              msg = "Some references do not have the same length")
+  
+  assert_that(nchar(as.character(reference[1])) == 
+                nchar(as.character(prediction[1])) &
+                nchar(as.character(reference[1])) == length(years), 
+              msg = "The reference and prediction differ in length of characters")
+
+  ### Check properties of supplied LU
+  
+  assert_that(is.character(LU) & nchar(LU) == 1, 
+              msg = "Provided LU not in right format")
+  
+  ### Check properties of transition
+  
+  assert_that(is.character(transition) & nchar(transition) > 1, 
+              msg = "Provided transition is in wrong format")
+  
+  
+  ### Converting supplied years to the position in the given years
+  
+  clustering_position <- which(clustering_year == years)[[1]]
+  reference_position <- which(reference_year == years)[[1]]
+  
+  assert_that(clustering_position < reference_position, 
+              msg = "Clustering year is prior to the reference year")
+  
+  tempdata <- data.frame(observed = prediction, 
+                         reference = reference)
+  
+  
+  for (method in clustering_method) {
+    if (method == "mask_follow_up") {
+      tempdata[[paste0("prediction_", method)]] <- mask_follow_up(prediction)
+      tempdata[[paste0("reference_", method)]] <- mask_follow_up(reference)
+    }
+    
+    if (method == "mask_follow_up_intensity") {
+      tempdata[[paste0("prediction_", method)]] <- mask_follow_up_intensity(prediction)
+      tempdata[[paste0("reference_", method)]] <- mask_follow_up_intensity(reference)
+    }
+
+    if (method == "make_bin_change") {
+      tempdata[[paste0("prediction_", method)]] <- make_bin_change(prediction)
+      tempdata[[paste0("reference_", method)]] <- make_bin_change(reference)
+    }
+
+    if (method == "change_frequency") {
+      tempdata[[paste0("prediction_", method)]] <- change_frequency(prediction)
+      tempdata[[paste0("reference_", method)]] <- change_frequency(reference)
+    }
+
+    if (method == "presence") {
+      tempdata[[paste0("prediction_", method)]] <- presence(prediction)
+      tempdata[[paste0("reference_", method)]] <- presence(reference)
+    }
+
+    if (method == "transition") {
+      tempdata[[paste0("prediction_", method)]] <- transition_present(prediction)
+      tempdata[[paste0("reference_", method)]] <- transition_present(reference)
+    }
+  }
+
+  return(tempdata)
+}
+  
+```
+
+
+```{r}
+# Get UA and PA
+
+data.frame(
+  users = c(res1$byClass[, 5], res2$byClass[, 5], res3$byClass[, 5]),
+  producers = c(res1$byClass[, 6], res2$byClass[, 6], res3$byClass[, 6]),
+  lu = rep(str_remove(rownames(res1$byClass), "Class: "), 3),
+  year = c(
+    rep(1774, nrow(res1$byClass)),
+    rep(1873, nrow(res2$byClass)), 
+    rep(1969, nrow(res3$byClass))
+  )
+) %>%
+  mutate(
+    lu = as.factor(lu),
+    year = as.factor(year)
+  ) %>%
+  ggplot() +
+  geom_point(aes(x = users, y = producers, color = lu, shape = year)) +
+  scale_color_discrete(name = "land use") +
+  xlab("user's accuracy (precision)") +
+  ylab("producer's accuracy (recall)") +
+  theme_bw()
+
+# Check for changes of the 3 other years 
+observed_changes <- data.frame(
+  map = as.factor(str_c(data$year_1774, data$year_1873,
+                        data$year_1969,
+                        sep = "-")),
+  
+  # ref = as.factor(str_c(data$year_2022, sep = "-")),
+  mapchange1 = as.factor(ifelse(data$year_1774 == data$year_1873,
+    "No change", "Change"
+  )),
+    mapchange2 = as.factor(ifelse(data$year_1873 == data$year_1969,
+    "No change", "Change"
+  )), 
+    mapchange3 = as.factor(ifelse(data$year_1969 == data$year_2022,
+    "No change", "Change"
+  ))) %>%
+  mutate(
+    map = factor(map, levels = sort(unique(c(levels(map))))),
+    map = factor(map, levels = levels(map))
+  )
+
+
+
+# Getting all possible combinations over the 3 years
+observed_changes %>%
+  pivot_longer(cols = 1:5, names_to = "type", values_to = "change") %>%
+  group_by(change) %>%
+  summarize(
+    map = sum(type == "map"), 
+  ) %>%
+  ungroup()
+
+```
+
+# ReGeNesees
+
+BEGIN exploration of other R packages to calculate the statistics\
+instead of relying on hand-coded functions implementing Olofsson et al\
+formulae\
+conclusion = the formulae are from a more general class of regression\
+estimators; cf Sarndal model-assisted survey sampling\
+these can be implemented via the general R package for design-based\
+inference "ReGeNesees"\
+also explored "mapac" R package, which also only implemented Olofsson
+
+```{r}
+
+# install mapac package from gitlab
+if (!c("mapac") %in% installed.packages()) {
+  remotes::install_gitlab(
+    repo = 'pflugmad/mapac',
+    host = 'scm.cms.hu-berlin.de', quiet = F, force = T)
+}
+# install ReGenesees
+if (!c("ReGenesees") %in% installed.packages()) {
+  remotes::install_github("DiegoZardetto/ReGenesees")
+}
+
+```
+
+function confusion_matrix() calculates the map-relevant version of error matrix map-relevant means that each p_ij is weighted by area proportions for each stratum (map class) so this is different from default caret::confusionMatrix which was used in function calculate_accuracy() see https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html
+
+```{r}
+
+```

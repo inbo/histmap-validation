@@ -1,0 +1,183 @@
+---
+title: "Accuracy calculations"
+author: "Robrecht Dockx"
+format: pdf
+editor: visual
+---
+
+
+```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE}
+library(tidyverse)
+library(terra)
+library(git2rdata)
+library(plotly)
+library(sf)
+library(INBOtheme)
+library(assertthat)
+library(caret)
+library(rprojroot)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                  comment = "", error = FALSE)
+
+git_root <- rprojroot::find_root(rprojroot::is_git_root)
+source(file.path(git_root, "source/scripts/nca_functions.R"))
+
+data_folder <-  find_root_file("data",
+                             criterion = has_file(
+                               "histmap-validation.Rproj"))
+
+```
+
+# The data 
+
+```{r}
+
+data <- read.csv(paste0(data_folder, "/legende_attribuuttabel.xlsx - validatiepunten_timeseries.csv"), 
+                        header = TRUE, encoding = "UTF-8")
+cols <- c("X1850_true", 
+          "X1904_tru", 
+          "X1939_tru", 
+          "X1981_tru", 
+          "X1989_tru", 
+          "X1774_true", 
+          "X1873_true", 
+          "X1969_true", 
+          "ref")
+new_cols <- c("1850", 
+          "year_1904", 
+          "year_1939", 
+          "year_1981", 
+          "year_1989", 
+          "year_1774", 
+          "year_1873", 
+          "year_1969", 
+          "year_2022")
+data <- data %>%
+  mutate(ref = as.integer(
+    str_sub(
+      as.character(
+        LU_2022_1969_1873_1774_pred), start = 1, end = 1))) %>% 
+  mutate(
+  across(all_of(cols), 
+         ~case_when(.x == 9 ~ "water", 
+                    .x == 8 ~ "boomgaard",
+                    .x == 7 ~ "moeras",
+                    .x == 6 ~ "strand, slikke en schorre",
+                    .x == 5 ~ "heide en duinen",
+                    .x == 4 ~ "grasland",
+                    .x == 3 ~ "bos",
+                    .x == 2 ~ "bebouwing, tuin, infrastructuur",
+                    .x == 1 ~ "akker")
+           )) %>% 
+  mutate(
+    across(all_of(cols), as.factor)) %>% 
+  rename_at(vars(cols),  ~ new_cols)
+
+```
+
+```{r}
+# 2022 was set as reference and all other were compared with 2022
+#
+
+res1 <- calculate_accuracy(data$year_1774, data$year_2022)
+res2 <- calculate_accuracy(data$year_1873, data$year_2022)
+res3 <- calculate_accuracy(data$year_1969, data$year_2022)
+```
+
+```{r}
+# Get UA and PA
+
+data.frame(
+  users = c(res1$byClass[, 5], res2$byClass[, 5], res3$byClass[, 5]),
+  producers = c(res1$byClass[, 6], res2$byClass[, 6], res3$byClass[, 6]),
+  lu = rep(str_remove(rownames(res1$byClass), "Class: "), 3),
+  year = c(
+    rep(1774, nrow(res1$byClass)),
+    rep(1873, nrow(res2$byClass)), 
+    rep(1969, nrow(res3$byClass))
+  )
+) %>%
+  mutate(
+    lu = as.factor(lu),
+    year = as.factor(year)
+  ) %>%
+  ggplot() +
+  geom_point(aes(x = users, y = producers, color = lu, shape = year)) +
+  scale_color_discrete(name = "land use") +
+  xlab("user's accuracy (precision)") +
+  ylab("producer's accuracy (recall)") +
+  theme_bw()
+
+# Check for changes of the 3 other years 
+observed_changes <- data.frame(
+  map = as.factor(str_c(data$year_1774, data$year_1873,
+                        data$year_1969,
+                        sep = "-")),
+  
+  # ref = as.factor(str_c(data$year_2022, sep = "-")),
+  mapchange1 = as.factor(ifelse(data$year_1774 == data$year_1873,
+    "No change", "Change"
+  )),
+    mapchange2 = as.factor(ifelse(data$year_1873 == data$year_1969,
+    "No change", "Change"
+  )), 
+    mapchange3 = as.factor(ifelse(data$year_1969 == data$year_2022,
+    "No change", "Change"
+  ))) %>%
+  mutate(
+    map = factor(map, levels = sort(unique(c(levels(map))))),
+    map = factor(map, levels = levels(map))
+  )
+
+
+
+# Getting all possible combinations over the 3 years
+observed_changes %>%
+  pivot_longer(cols = 1:5, names_to = "type", values_to = "change") %>%
+  group_by(change) %>%
+  summarize(
+    map = sum(type == "map"), 
+  ) %>%
+  ungroup()
+
+```
+
+# ReGeNesees
+
+BEGIN exploration of other R packages to calculate the statistics       
+instead of relying on hand-coded functions implementing Olofsson et al  
+formulae                                                                
+conclusion = the formulae are from a more general class of regression   
+estimators; cf Sarndal model-assisted survey sampling                   
+these can be implemented via the general R package for design-based     
+inference "ReGeNesees"                                                  
+also explored "mapac" R package, which also only implemented Olofsson   
+
+
+```{r}
+
+# install mapac package from gitlab
+if (!c("mapac") %in% installed.packages()) {
+  remotes::install_gitlab(
+    repo = 'pflugmad/mapac',
+    host = 'scm.cms.hu-berlin.de', quiet = F, force = T)
+}
+# install ReGenesees
+if (!c("ReGenesees") %in% installed.packages()) {
+  remotes::install_github("DiegoZardetto/ReGenesees")
+}
+
+```
+function confusion_matrix() calculates the map-relevant version of error matrix
+map-relevant means that each p_ij is weighted by area proportions for each stratum (map class) so this is different from default caret::confusionMatrix which was used in
+function calculate_accuracy()
+see https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html
+
+```{r}
+
+```
+
+
+
+
