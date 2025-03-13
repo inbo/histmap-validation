@@ -8,6 +8,7 @@ editor: source
 # Aanpassing van de de formules aan de data
 
 ```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE}
+
 library(tidyverse)
 library(terra)
 library(git2rdata)
@@ -39,8 +40,7 @@ data_LU <- read.csv(paste0(data_folder, "/raster_report_LUC.xlsx - report land u
 
 # Functions 
 
-
-
+source("./clustering_functions.R")
 
 
 ```
@@ -196,13 +196,13 @@ data <- data %>% mutate(
 
 res1 <- calculate_accuracy(mapdata = data$observed, refdata = data$reference)
 
-round(100 * unname(res1$overall["Accuracy"]), digits = 2)
+# round(100 * unname(res1$overall["Accuracy"]), digits = 2)
 # UA PA
 # UA = precision (this does NOT equal specificity) = positive predictive value
 # PA = recall = sensitivity = true positive fraction
 # als de waarde voor SP en SE, PPV, NPV NA wil dit zeggen dat ze eigenlijk 0 is (teller = 0) 
 # bij NAN kan hij ze niet bepalen (noemer = 0)
-t(res1$byClass) |> round(digits = 2)
+# t(res1$byClass) |> round(digits = 2)
 
 
 ```
@@ -211,181 +211,32 @@ t(res1$byClass) |> round(digits = 2)
   
 ## Clustering
 
-```{r}
-clustering <- function(years = c(2022, 1969, 1873, 1774), 
-                       prediction = data$observed,
-                       reference = data$reference, 
-                       LU = "1",
-                       transition = "5555",
-                       clustering_year = 2022, 
-                       clustering_method = "mask_follow_up", 
-                       akker = 1, bebouwing = 2, bos = 3, 
-                       grasland = 4, heide = 5, strand = 6,
-                       moeras = 7, boomgaard = 8, water = 9, 
-                       reference_year = 1774){
-  
-  ### check properties of the clustering method
-  
-  # assert_that(length(clustering_method) == 1, 
-  #             msg = "Please provide 1 clustering method")
-  
-  assert_that(all(clustering_method %in% c("mask_follow_up", 
-                                       "mask_follow_up_intensity", 
-                                       "make_bin_change",
-                                       "change_frequency",
-                                       "transition", 
-                                       "presence")), 
-              msg = "clustering_method should be either 
-              mask_follow_up, mask_follow_up_intensity, make_bin_change, 
-              change_frequency, transition, presence")
-  
-  ### Check properties of coding LU
-  
-  assert_that(is.numeric(c(akker, bebouwing, bos, grasland, 
-                           heide, strand, moeras, boomgaard, 
-                           water)), 
-              msg = "The provided LU should be in numerical form")
-  
-  if(akker == 1 & bebouwing == 2 & bos == 3 & grasland == 4 &
-     heide == 5 & strand == 6 & moeras == 7 & boomgaard == 8 &
-     water == 9){
-  
-    message("Consistent coding of LU was used")
-    
-  } else{
-    warning("There is a change in LU coding")
-    }
-  
-  ### Check properties of supplied years
-  
-  assert_that(identical(years, sort(years, decreasing = TRUE)), 
-              msg = "Supplied years are not in descending order")
-   
-  assert_that(length(years) == 4, 
-              msg = "The number of provided years is different from 4")
-        
-  assert_that(all(years %in%  c(2022, 1969, 1873, 1774)), 
-              msg = "One ore more of the provided year(s) is/are not 
-              2022, 1969, 1873 or 1774")
-  
-  assert_that(is.numeric(years), 
-              msg = "The supplied years are not in numerical form")
-  
-  assert_that(is.numeric(reference_year) & is.numeric(clustering_year), 
-              msg = "Reference year and clustering year should be numeric")
-  
-  assert_that(clustering_year %in% years,
-              msg = "The clustering year is not in the provided years")
-  
-  assert_that(length(clustering_year) == 1, 
-              msg = "Provide 1 clusterig year")
-  
-  assert_that(reference_year %in% years,
-              msg = "The reference year is not in the provided years")
-  
-  assert_that(length(reference_year) == 1, 
-              msg = "Provide 1 reference year")
-  
-  assert_that(reference_year != clustering_year, 
-              msg = "Clustering year and reference year are the same")
-  
-  assert_that(clustering_year > reference_year, 
-              msg = "Clustering year is prior to reference year")
-  
-  ### Checking properties of the supplied data 
-  
-  assert_that(length(prediction) == length(reference), 
-               msg = "Prediction and reference are not of the same length")
-  
-  assert_that(all(levels(prediction) == levels(reference)), 
-              msg = "Prediction and reference have not the same levels")
-  
-  assert_that(all(nchar(as.character(prediction)) == 
-                    nchar(as.character(prediction[1]))), 
-              msg = "Some predictions do not have the same length")
-  
-  assert_that(all(nchar(as.character(reference)) == 
-                    nchar(as.character(reference[1]))), 
-              msg = "Some references do not have the same length")
-  
-  assert_that(nchar(as.character(reference[1])) == 
-                nchar(as.character(prediction[1])) &
-                nchar(as.character(reference[1])) == length(years), 
-              msg = "The reference and prediction differ in length of characters")
+```{r calc_res1}
+test_clustering <- clustering(clustering_method = "change_frequency")
 
-  ### Check properties of supplied LU
-  
-  assert_that(is.character(LU) & nchar(LU) == 1, 
-              msg = "Provided LU not in right format")
-  
-  ### Check properties of transition
-  
-  assert_that(is.character(transition) & nchar(transition) > 1, 
-              msg = "Provided transition is in wrong format")
-  
-  
-  ### Converting supplied years to the position in the given years
-  
-  clustering_position <- which(clustering_year == years)[[1]]
-  reference_position <- which(reference_year == years)[[1]]
-  
-  assert_that(clustering_position < reference_position, 
-              msg = "Clustering year is prior to the reference year")
-  
-  tempdata <- data.frame(observed = prediction, 
-                         reference = reference)
-  
-  
-  for (method in clustering_method) {
-    if (method == "mask_follow_up") {
-      tempdata[[paste0("prediction_", method)]] <- mask_follow_up(prediction)
-      tempdata[[paste0("reference_", method)]] <- mask_follow_up(reference)
-    }
-    
-    if (method == "mask_follow_up_intensity") {
-      tempdata[[paste0("prediction_", method)]] <- mask_follow_up_intensity(prediction)
-      tempdata[[paste0("reference_", method)]] <- mask_follow_up_intensity(reference)
-    }
+res1 <- calculate_accuracy(mapdata = test_clustering$prediction_change_frequency,
+                           refdata = test_clustering$reference_change_frequency)
 
-    if (method == "make_bin_change") {
-      tempdata[[paste0("prediction_", method)]] <- make_bin_change(prediction)
-      tempdata[[paste0("reference_", method)]] <- make_bin_change(reference)
-    }
-
-    if (method == "change_frequency") {
-      tempdata[[paste0("prediction_", method)]] <- change_frequency(prediction)
-      tempdata[[paste0("reference_", method)]] <- change_frequency(reference)
-    }
-
-    if (method == "presence") {
-      tempdata[[paste0("prediction_", method)]] <- presence(prediction)
-      tempdata[[paste0("reference_", method)]] <- presence(reference)
-    }
-
-    if (method == "transition") {
-      tempdata[[paste0("prediction_", method)]] <- transition_present(prediction)
-      tempdata[[paste0("reference_", method)]] <- transition_present(reference)
-    }
-  }
-
-  return(tempdata)
-}
+round(100 * unname(res1$overall["Accuracy"]), digits = 2)
+# UA PA
+# UA = precision (this does NOT equal specificity) = positive predictive value
+# PA = recall = sensitivity = true positive fraction
+# als de waarde voor SP en SE, PPV, NPV NA wil dit zeggen dat ze eigenlijk 0 is (teller = 0) 
+# bij NAN kan hij ze niet bepalen (noemer = 0)
+t(res1$byClass) |> round(digits = 2)
   
 ```
 
 
-```{r}
-# Get UA and PA
+```{r plot_UA_PA}
+
+# Get UA and PA and plot them
 
 data.frame(
-  users = c(res1$byClass[, 5], res2$byClass[, 5], res3$byClass[, 5]),
-  producers = c(res1$byClass[, 6], res2$byClass[, 6], res3$byClass[, 6]),
-  lu = rep(str_remove(rownames(res1$byClass), "Class: "), 3),
-  year = c(
-    rep(1774, nrow(res1$byClass)),
-    rep(1873, nrow(res2$byClass)), 
-    rep(1969, nrow(res3$byClass))
-  )
+  users = c(res1$byClass[, 5]),
+  producers = c(res1$byClass[, 6]),
+  lu = str_remove(rownames(res1$byClass), "Class: "),
+  year = c(2022)
 ) %>%
   mutate(
     lu = as.factor(lu),
@@ -398,44 +249,13 @@ data.frame(
   ylab("producer's accuracy (recall)") +
   theme_bw()
 
-# Check for changes of the 3 other years 
-observed_changes <- data.frame(
-  map = as.factor(str_c(data$year_1774, data$year_1873,
-                        data$year_1969,
-                        sep = "-")),
-  
-  # ref = as.factor(str_c(data$year_2022, sep = "-")),
-  mapchange1 = as.factor(ifelse(data$year_1774 == data$year_1873,
-    "No change", "Change"
-  )),
-    mapchange2 = as.factor(ifelse(data$year_1873 == data$year_1969,
-    "No change", "Change"
-  )), 
-    mapchange3 = as.factor(ifelse(data$year_1969 == data$year_2022,
-    "No change", "Change"
-  ))) %>%
-  mutate(
-    map = factor(map, levels = sort(unique(c(levels(map))))),
-    map = factor(map, levels = levels(map))
-  )
-
-
-
-# Getting all possible combinations over the 3 years
-observed_changes %>%
-  pivot_longer(cols = 1:5, names_to = "type", values_to = "change") %>%
-  group_by(change) %>%
-  summarize(
-    map = sum(type == "map"), 
-  ) %>%
-  ungroup()
-
 ```
 
 # ReGeNesees
 
-BEGIN exploration of other R packages to calculate the statistics\
-instead of relying on hand-coded functions implementing Olofsson et al\
+BEGIN exploration of other R packages to calculate the statistics instead of 
+relying on hand-coded functions implementing Olofsson et al.
+
 formulae\
 conclusion = the formulae are from a more general class of regression\
 estimators; cf Sarndal model-assisted survey sampling\
@@ -443,7 +263,7 @@ these can be implemented via the general R package for design-based\
 inference "ReGeNesees"\
 also explored "mapac" R package, which also only implemented Olofsson
 
-```{r}
+```{r install}
 
 # install mapac package from gitlab
 if (!c("mapac") %in% installed.packages()) {
@@ -461,5 +281,20 @@ if (!c("ReGenesees") %in% installed.packages()) {
 function confusion_matrix() calculates the map-relevant version of error matrix map-relevant means that each p_ij is weighted by area proportions for each stratum (map class) so this is different from default caret::confusionMatrix which was used in function calculate_accuracy() see https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html
 
 ```{r}
+
+# Performing the clustering on the surface data 
+
+str(data_LU)
+
+data_LU <- data_LU %>% dplyr::filter(value >= 1000) %>% 
+  mutate(value = as.character(value))
+data_LU_temp <- clustering(prediction = data_LU$value, 
+                           reference = data_LU$value, 
+                           clustering_method = "change_frequency" ) %>% 
+  select(reference, reference_change_frequency)
+
+data_LU_merge <- merge(data_LU, data_LU_temp, 
+                       by.x = "value", by.y = "reference") %>% 
+  select(!c(Cumul_ha, Cumul_.))
 
 ```
