@@ -280,21 +280,85 @@ if (!c("ReGenesees") %in% installed.packages()) {
 
 function confusion_matrix() calculates the map-relevant version of error matrix map-relevant means that each p_ij is weighted by area proportions for each stratum (map class) so this is different from default caret::confusionMatrix which was used in function calculate_accuracy() see https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html
 
-```{r}
+```{r cluster_area}
 
 # Performing the clustering on the surface data 
+## Hier zelfde probleem zijn de getallen van velue < 1000 oof values waarbij de 
+## eerste cijfers moeten vervangen worden door "0"
 
 str(data_LU)
 
 data_LU <- data_LU %>% dplyr::filter(value >= 1000) %>% 
   mutate(value = as.character(value))
-data_LU_temp <- clustering(prediction = data_LU$value, 
-                           reference = data_LU$value, 
-                           clustering_method = "change_frequency" ) %>% 
-  select(reference, reference_change_frequency)
+data_LU_clus <- clustering_area(data_LU$value, 
+                                clustering_method = c("change_frequency", 
+                                                      "presence"))
 
-data_LU_merge <- merge(data_LU, data_LU_temp, 
+data_LU_merge <- merge(data_LU, data_LU_clus, 
                        by.x = "value", by.y = "reference") %>% 
   select(!c(Cumul_ha, Cumul_.))
 
+## get area per cluster 
+
+data_LU_area_clus <- data_LU_merge %>% group_by(reference_change_frequency) %>% 
+  summarise(area_ha = sum(ha, na.rm = TRUE), 
+            area_m2 = sum(m2, na.rm = TRUE))
+
 ```
+
+
+```{r confusion_matrix}
+
+cm <- confusion_matrix(
+  maparea = data_LU_area_clus$area_ha,
+  ma = as.data.frame.matrix(res1$table)
+)
+
+```
+
+```{r comp_estimates}
+
+### check if areas are being used in the right strata cause for the functions the variables are not sorted
+
+# using MPAC package
+aa <- mapac::aa_card(
+  data = test_clustering[, c("reference_change_frequency", 
+                             "prediction_change_frequency")],
+  w = data_LU_area_clus$area_ha/sum(data_LU_area_clus$area_ha),
+  strata = levels(factor(test_clustering$reference_change_frequency)),
+  area = sum(data_LU_area_clus$area_ha),
+  confusion_matrix = FALSE,
+  olofsson = TRUE
+)
+
+# using formulas Olafson 
+
+## Overall accuracy
+
+overall_acc <- calc_oa(
+  maparea = data_LU_area_clus$area_ha,
+  ma = as.data.frame.matrix(res1$table)
+)
+
+waldo::compare(overall_acc$oa_est, aa$accuracy[1])
+waldo::compare(sqrt(overall_acc$oa_var), aa$accuracy[2]) ## No differences with MAPAC package
+
+## User accuracy and producer accuracy
+
+ua_pa_df <- calc_ua_pa(
+  maparea = data_LU_area_clus$area_ha,
+  ma = as.data.frame.matrix(res1$table)
+)
+
+ua_pa_df
+waldo::compare(unname(ua_pa_df$ua_est), aa$stats$ua, tolerance = 1e-10)
+waldo::compare(unname(sqrt(ua_pa_df$ua_var)), aa$stats$ua_se, tolerance = 1e-3)
+waldo::compare(unname(ua_pa_df$pa_est), aa$stats$pa, tolerance = 1e-10)
+waldo::compare(unname(sqrt(ua_pa_df$pa_var)), aa$stats$pa_se, tolerance = 1e-3)
+
+## No major differences with MAPAC package 
+
+
+```
+
+

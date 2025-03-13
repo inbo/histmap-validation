@@ -513,5 +513,15 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
   return(tempdata)
 }
 
+clustering_area <- function(variable,
+                            clustering_method = "change_frequency"){
 
+  tempdata <- clustering(reference = variable,
+                         prediction = variable,
+                         clustering_method = clustering_method)
+
+  tempdata <- tempdata %>%
+    select(reference, paste0("reference_", clustering_method))
+
+}
 

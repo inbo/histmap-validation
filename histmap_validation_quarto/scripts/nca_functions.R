@@ -102,7 +102,8 @@ confusion_matrix <- function(maparea, ma) {
 
 
 
-calc_oa <- function(maparea, ma, propma = NULL) {
+calc_oa <- function(maparea, ma, propma = NULL,
+                    CI = 0.95) {
   if (is.null(propma)) {
     propma <- confusion_matrix(maparea = maparea, ma = ma)
   }
@@ -115,7 +116,8 @@ calc_oa <- function(maparea, ma, propma = NULL) {
   propmaparea <- maparea / aoi
   ua <- diag(propma) / rowSums(propma)
   v_oa <- sum(propmaparea^2 * ua * (1 - ua) / (ni - 1), na.rm = TRUE)
-  me_oa <- 1.96 * sqrt(v_oa)
+  quantile <- qnorm(p = (1 - CI)/2, lower.tail = FALSE)
+  me_oa <- quantile * sqrt(v_oa)
   oa_low <- oa - me_oa
   oa_high <- oa + me_oa
   return(
@@ -123,7 +125,8 @@ calc_oa <- function(maparea, ma, propma = NULL) {
   )
 }
 
-calc_ua_pa <- function(maparea, ma, propma = NULL) {
+calc_ua_pa <- function(maparea, ma, propma = NULL,
+                       CI = 0.95) {
   if (is.null(propma)) {
     propma <- confusion_matrix(maparea = maparea, ma = ma)
   }
@@ -154,8 +157,9 @@ calc_ua_pa <- function(maparea, ma, propma = NULL) {
     pa^2 * aftersumsign)
   v_pa[is.nan(v_pa)] <- 0
 
-  ua_me <- 1.96 * sqrt(v_ua)
-  pa_me <- 1.96 * sqrt(v_pa)
+  quantile <- qnorm(p = (1 - CI)/2, lower.tail = FALSE)
+  ua_me <- quantile * sqrt(v_ua)
+  pa_me <- quantile * sqrt(v_pa)
   ua_low <- ua - ua_me
   ua_high <- ua + ua_me
   pa_low <- pa - pa_me
