@@ -3,7 +3,9 @@ outersect <- function(x, y) {
          y[!y%in%x]))
 }
 
-mask_follow_up <- function(variable){
+mask_follow_up <- function(variable,
+                           clustering_position,
+                           reference_position, ...){
 
   position <- clustering_position
 
@@ -31,7 +33,9 @@ mask_follow_up <- function(variable){
 mask_follow_up_intensity <- function(variable,
                                      akker = 1, bebouwing = 2, bos = 3,
                                      grasland = 4, heide = 5, strand = 6,
-                                     moeras = 7, boomgaard = 8, water = 9){
+                                     moeras = 7, boomgaard = 8, water = 9,
+                                     clustering_position,
+                                     reference_position, ...){
 
   position <-  clustering_position
 
@@ -95,7 +99,12 @@ mask_follow_up_intensity <- function(variable,
 
 }
 
-make_bin_change <- function(variable){
+make_bin_change <- function(variable,
+                            clustering_position,
+                            reference_position, ...){
+
+## check if LU changed based on a between the given reference year and
+## clustering year
 
   variable_char <- as.character(variable)
 
@@ -109,7 +118,9 @@ make_bin_change <- function(variable){
 
 }
 
-change_frequency <- function(variable){
+change_frequency <- function(variable,
+                             reference_position,
+                             clustering_position){
 
 ### making different groups based on reference year and a clustering year
 
@@ -146,7 +157,14 @@ change_frequency <- function(variable){
 
 }
 
-presence <- function(variable){
+presence <- function(variable,
+                     clustering_position,
+                     reference_position,
+                     LU = LU, ...){
+
+  ## checking if a certain LU is present between the reference year and
+  ## clustering year
+  ## check if during this period it is present or is gained or lost
 
 
   variable_char <- as.character(variable)
@@ -187,7 +205,14 @@ presence <- function(variable){
 }
 
 
-transition_present <- function(variable) {
+transition_present <- function(variable,
+                               transition,
+                               clustering_position,
+                               reference_position, ...) {
+
+  ## Check if a transition is present between a reference year and a clustering
+  ## year
+  ## Count how frequent the transition is present
 
   variable <- as.character(variable)
   transition <- as.character(transition)
@@ -400,8 +425,16 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
 
   for (method in clustering_method) {
     if (method == "mask_follow_up") {
-      tempdata[[paste0("prediction_", method)]] <- mask_follow_up(prediction)
-      tempdata[[paste0("reference_", method)]] <- mask_follow_up(reference)
+      tempdata[[paste0("prediction_", method)]] <- mask_follow_up(prediction,
+                                                                  clustering_position =
+                                                                    clustering_position,
+                                                                  reference_position =
+                                                                    reference_position)
+      tempdata[[paste0("reference_", method)]] <- mask_follow_up(reference,
+                                                                 clustering_position =
+                                                                   clustering_position,
+                                                                 reference_position =
+                                                                   reference_position)
 
       ## set them at the same level
 
@@ -419,8 +452,16 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
     }
 
     if (method == "mask_follow_up_intensity") {
-      tempdata[[paste0("prediction_", method)]] <- mask_follow_up_intensity(prediction)
-      tempdata[[paste0("reference_", method)]] <- mask_follow_up_intensity(reference)
+      tempdata[[paste0("prediction_", method)]] <- mask_follow_up_intensity(prediction,
+                                                                            clustering_position =
+                                                                              clustering_position,
+                                                                            reference_position =
+                                                                              reference_position)
+      tempdata[[paste0("reference_", method)]] <- mask_follow_up_intensity(reference,
+                                                                           clustering_position =
+                                                                             clustering_position,
+                                                                           reference_position =
+                                                                             reference_position)
 
       ## set them at the same level
 
@@ -438,8 +479,16 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
     }
 
     if (method == "make_bin_change") {
-      tempdata[[paste0("prediction_", method)]] <- make_bin_change(prediction)
-      tempdata[[paste0("reference_", method)]] <- make_bin_change(reference)
+      tempdata[[paste0("prediction_", method)]] <- make_bin_change(prediction,
+                                                                   clustering_position =
+                                                                     clustering_position,
+                                                                   reference_position =
+                                                                     reference_position)
+      tempdata[[paste0("reference_", method)]] <- make_bin_change(reference,
+                                                                  clustering_position =
+                                                                    clustering_position,
+                                                                  reference_position =
+                                                                    reference_position)
 
       ## set them at the same level
 
@@ -456,8 +505,16 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
     }
 
     if (method == "change_frequency") {
-      tempdata[[paste0("prediction_", method)]] <- change_frequency(prediction)
-      tempdata[[paste0("reference_", method)]] <- change_frequency(reference)
+      tempdata[[paste0("prediction_", method)]] <- change_frequency(prediction,
+                                                                    clustering_position =
+                                                                      clustering_position,
+                                                                    reference_position =
+                                                                      reference_position)
+      tempdata[[paste0("reference_", method)]] <- change_frequency(reference,
+                                                                   clustering_position =
+                                                                     clustering_position,
+                                                                   reference_position =
+                                                                     reference_position)
 
       ## set them at the same level
 
@@ -474,8 +531,18 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
     }
 
     if (method == "presence") {
-      tempdata[[paste0("prediction_", method)]] <- presence(prediction)
-      tempdata[[paste0("reference_", method)]] <- presence(reference)
+      tempdata[[paste0("prediction_", method)]] <- presence(prediction,
+                                                            clustering_position =
+                                                              clustering_position,
+                                                            reference_position =
+                                                              reference_position,
+                                                            LU = LU)
+      tempdata[[paste0("reference_", method)]] <- presence(reference,
+                                                           clustering_position =
+                                                             clustering_position,
+                                                           reference_position =
+                                                             reference_position,
+                                                           LU = LU)
 
       ## set them at the same level
 
@@ -492,8 +559,18 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
     }
 
     if (method == "transition") {
-      tempdata[[paste0("prediction_", method)]] <- transition_present(prediction)
-      tempdata[[paste0("reference_", method)]] <- transition_present(reference)
+      tempdata[[paste0("prediction_", method)]] <- transition_present(prediction,
+                                                                      transition = transition,
+                                                                      clustering_position =
+                                                                        clustering_position,
+                                                                      reference_position =
+                                                                        reference_position)
+      tempdata[[paste0("reference_", method)]] <- transition_present(reference,
+                                                                     transition = transition,
+                                                                     clustering_position =
+                                                                       clustering_position,
+                                                                     reference_position =
+                                                                       reference_position)
 
       ## set them at the same level
 
