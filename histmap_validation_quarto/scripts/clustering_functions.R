@@ -155,6 +155,8 @@ change_frequency <- function(variable,
 
   })
 
+  clustering
+
 }
 
 presence <- function(variable,
@@ -199,8 +201,10 @@ presence <- function(variable,
       value <- "Intermittent Presence"
       }
 
-
+    value
   })
+
+  clustering
 
 }
 
