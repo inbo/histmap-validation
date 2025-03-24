@@ -1,5 +1,46 @@
 # Clustering
 
+```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE}
+
+library(tidyverse)
+library(terra)
+library(git2rdata)
+library(plotly)
+library(sf)
+library(INBOtheme)
+library(assertthat)
+library(caret)
+library(rprojroot)
+library(devtools)
+devtools::install_github("gbganalyst/forstringr")
+library(forstringr)
+library(flextable)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                  comment = "", error = FALSE)
+
+git_root <- rprojroot::find_root(rprojroot::is_git_root)
+source(file.path(git_root, "source/scripts/nca_functions.R"))
+
+data_folder <-  find_root_file("data",
+                             criterion = has_file(
+                               "histmap_validation_quarto.Rproj"))
+
+data <- readRDS(paste0(data_folder, "/cleaned_data.RDS"))
+
+data_LU <- read.csv(paste0(data_folder, "/raster_report_LUC.xlsx - report land use change categori.csv"),
+                        header = TRUE, encoding = "UTF-8")
+
+# Functions 
+
+source("./scripts/clustering_functions.R")
+source("./scripts/nca_functions.R")
+
+
+```
+
+
+
 Er werden in totaal 6 verschillende functies geschreven om de observaties te clusteren: 
 
 ## mask_follow_up
@@ -17,13 +58,13 @@ De functie mask_follow_up clustert een reeks landgebruikscodes (LU-codes) op bas
 
 Input:
 
-```{r eval = FALSE, include = TRUE}
+```{r echo = TRUE, eval = FALSE}
 mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2)
 ```
 output:
 
 ```{r echo = FALSE}
-mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2)
+mask_follow_up(c("1123", "2245", "3333"), clustering_position = 2)
 ```
 
 ## mask_follow_up_intensity
@@ -42,13 +83,13 @@ De functie mask_follow_up_intensity bouwt verder op mask_follow_up, maar voegt e
 
 Input:
 
-```{r eval = FALSE, include = TRUE}
+```{r echo = TRUE, eval = FALSE}
 mask_follow_up_intensity(c("11123", "22345", "33333"), clustering_position = 2)
 ```
 output:
 
 ```{r echo = FALSE}
-mask_follow_up_intensity(c("11123", "22345", "33333"), clustering_position = 2)
+mask_follow_up_intensity(c("1123", "2245", "3333"), clustering_position = 2)
 ```
 
 ## make_bin_change
@@ -76,7 +117,7 @@ Output:
 make_bin_change(c("12345", "22345", "33445"), clustering_position = 1, reference_position = 3)
 ```
 
-Hier wordt gekeken of het 1e karakter (clustering) en het 3e karakter (referentie) gelijk zijn.
+Hier wordt gekeken of het 1ste karakter (clustering) en het 3de karakter (referentie) gelijk zijn.
 
 ## change_frequency
 
@@ -275,15 +316,20 @@ tempdata <- flextable(as.data.frame(t(res1$byClass)) %>%
   
 ```
 
-```{r}
+\newpage
+\blandscape
+
+```{r eval = TRUE}
 #| label: tbl-output_clustering
-#| tbl-cap: !expr 'paste0("De totale acuraatheid (OA) bedraagt ",  OA, ".")' 
-#| tbl-subcap: "Deze berekening houdt geen rekening met de oppervlakte van elk LU."
-tempdata %>% set_table_properties(layout = "autofit")
+#| tbl-cap: De totala accuraatheid is {{round(OA, 3)}} met een variantie van.
+
+tempdata %>% set_table_properties(layout = "fixed")
 
 ```
 
-```{r plot_UA_PA}
+\elandscape
+
+```{r plot_UA_PA, eval = TRUE}
 #| label: fig-UA_PA
 #| fig-cap: "Plot of the PA and U after clustering."
 
@@ -335,3 +381,11 @@ data_LU_area_clus <- data_LU_merge %>% group_by(reference_change_frequency) %>%
   column_to_rownames(var = "reference_change_frequency")
 
 ```
+
+```{r output_data}
+
+saveRDS(test_clustering, "./data/output_clustering.RDS")
+saveRDS(data_LU_area_clus, "./data/areas_LU_clustered.RDS")
+
+```
+

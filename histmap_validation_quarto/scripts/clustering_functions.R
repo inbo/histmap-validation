@@ -52,7 +52,12 @@ mask_follow_up_intensity <- function(variable,
   extens_1 <- as.character(c(bos, grasland, heide, strand, moeras,
                              boomgaard, water))
   extens_2 <- as.character(c(bos, heide, strand, moeras, water))
-  intens <- as.character(c(akker, bebouwing))
+  intens_1 <- as.character(c(akker, bebouwing))
+  intens_2 <- as.character(c(grasland, boomgaard, bebouwing))
+  positions_1 <- c(3, 4)
+  positions_2 <- c(2
+                   #,1
+                   )
   diff_extens <- setdiff(extens_1, extens_2)
 
   variable_char <- as.character(variable)
@@ -79,19 +84,18 @@ mask_follow_up_intensity <- function(variable,
   data <- data %>% rowwise() %>%
     mutate(location = regexpr("X", clustered)[1],
            location = ifelse(location == -1, 0, location),
-           intensity = ifelse(any(intens %in%
-                                    strsplit(original, "")[[1]][c((location):
-                                                                    nchar(original)
-                                    )]) &
-                                location != -1,
+           all_locations = list(c((location) : nchar(original))),
+           intens_1_position = any(positions_1 %in% unlist(all_locations)),
+           intens_2_position = any(positions_2 %in% unlist(all_locations)),
+           intens_1_present = any(
+             strsplit(original, "")[[1]][positions_1] %in% intens_1),
+           intens_2_present = any(
+             strsplit(original, "")[[1]][positions_2] %in% intens_2),
+
+           intensity = ifelse(intens_1_present | intens_2_present,
                               paste0(clustered, "_I"),
-                              paste0(clustered, "_E")),
-           intensity = ifelse(any(location == 2 &
-                                    strsplit(original, "")[[1]][location] %in%
-                                    diff_extens),
-                              paste0(clustered, "_I"),
-                              paste0(intensity, ""))
-    ) %>% select(-c(location, clustered)) %>%
+                              paste0(clustered, "_E"))) %>%
+             select(-c(location, clustered)) %>%
     rename(clustered = intensity)
 
   return(data$clustered)

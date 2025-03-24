@@ -1,8 +1,59 @@
 # Accuracy with strata
 
+```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE}
+
+library(tidyverse)
+library(terra)
+library(git2rdata)
+library(plotly)
+library(sf)
+library(INBOtheme)
+library(assertthat)
+library(caret)
+library(rprojroot)
+library(devtools)
+devtools::install_github("gbganalyst/forstringr")
+library(forstringr)
+library(flextable)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                  comment = "", error = FALSE)
+
+git_root <- rprojroot::find_root(rprojroot::is_git_root)
+source(file.path(git_root, "source/scripts/nca_functions.R"))
+
+data_folder <-  find_root_file("data",
+                             criterion = has_file(
+                               "histmap_validation_quarto.Rproj"))
+
+data <- readRDS(paste0(data_folder, "/cleaned_data.RDS"))
+
+data_LU <- read.csv(paste0(data_folder, "/raster_report_LUC.xlsx - report land use change categori.csv"),
+                        header = TRUE, encoding = "UTF-8")
+
+
+test_clustering <- readRDS(paste0(data_folder, 
+                                   "/output_clustering.RDS"))
+data_LU_area_clus <- readRDS(paste0(data_folder, 
+                                   "/areas_LU_clustered.RDS"))
+
+# Functions 
+
+source("./scripts/clustering_functions.R")
+source("./scripts/nca_functions.R")
+
+
+```
+
 ## User and producers accurcay using hand coded functions based on Olofsson et al
 
 De functie confusion_matrix() berekent de map-relevante versie van de foutmatrix. Map-relevant betekent dat elke p_ij gewogen wordt op basis van de oppervlakteverhouding voor elk stratum (kaartklasse). Dit verschilt van de standaard caret::confusionMatrix, die werd gebruikt in de functie calculate_accuracy(). Zie ook https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html.
+```{r res1}
+
+res1 <- calculate_accuracy(mapdata = test_clustering$prediction_change_frequency,
+                           refdata = test_clustering$reference_change_frequency)
+
+```
 
 ```{r confusion_matrix}
 
@@ -25,17 +76,33 @@ overall_acc <- calc_oa(
   ma = as.data.frame.matrix(res1$table)
 )
 
+est <- overall_acc$oa_est
+var <- overall_acc$oa_var
 
 ## User accuracy and producer accuracy
 
 ua_pa_df <- calc_ua_pa(
   maparea = data_LU_area_clus$area_ha,
   ma = as.data.frame.matrix(res1$table)
-)
+) 
 
-ua_pa_df
+tempdata <- flextable(ua_pa_df %>% 
+                        mutate(across(
+                          where(is.numeric), round, digits = 3)))
 ```
 
+\newpage
+\blandscape
+
+```{r tbl_acc_own_funct}
+#| label: tbl-accu_own_funct
+#| tbl-cap: User and producer accuracy based on own formules based on Olofsson et al.. De overall accuracy is {{round(est, 3)}} met een variantie van {{round(var, 2)}}.
+
+tempdata %>% set_table_properties(layout = "fixed")
+
+```
+
+\elandscape
 
 ## MAPAC 
 
@@ -78,8 +145,25 @@ aa <- mapac::aa_card(
   olofsson = TRUE
 )
 
-```
+est <- aa$accuracy[1]
+var <- aa$accuracy[2]
 
+tempdata <- aa$stats 
+row.names(tempdata) <- NULL
+tempdata <- flextable(tempdata %>% mutate(across(
+                          where(is.numeric), round, digits = 3)))
+
+```
+\newpage
+\blandscape
+
+```{r tbl_acc_own_mapac}
+#| label: tbl-accu_own_mapac
+#| tbl-cap: User and producer accuracy based on own formules based on the MAPAC package. De overall accuracy is {{round(est, 3)}} met een variantie van {{round(var, 3)}}.
+
+tempdata %>% set_table_properties(layout = "fixed")
+```
+\elandscape
 
 ```{r estimates_comp, eval = FALSE}
 waldo::compare(overall_acc$oa_est, aa$accuracy[1])
@@ -98,7 +182,17 @@ waldo::compare(unname(sqrt(ua_pa_df$pa_var)), aa$stats$pa_se, tolerance = 1e-3)
 
 ## ReGenesees
 
-```{r}
+ReGenesees (R Evolved Generalized Software for Sampling Estimates and Errors in Surveys) is een R-pakket voor het uitvoeren van design-based en model-assisted analyses van complexe steekproeven. Het ondersteunt multistage, gestratificeerde, geclusterde en ongelijk gewogen steekproefontwerpen. Voor niet-lineaire (gladde) schatters wordt de steekproefvariantie geschat met behulp van Taylor-reeks linearisatie.
+
+De volgende stappen werden uitgevoerd: 
+
+- Elke predictie werd gekoppeld aan de totale oppervlakte er beschikbaar is van dat clustering niveau en de frequentie van de voorkomende clustering niveaus. 
+- de Inverse Probability Sampling (IPS) werd bepaald per clustering niveau door zijn frequentie te delen door zijn oppervlakte. De inverse hiervan wordt beschouwd als een gewicht voor de sampling units. 
+- Aan elke observatie werd een bepaalde naam gegeven (ids)
+
+
+```{r setting_up_regenesees}
+
 # estimate areas using ReGenesees
 #################################
 observed_changes_RD <- data.frame(
@@ -222,7 +316,7 @@ waldo::compare(aa$area$area, cal_ref_areas$Total, tolerance = 1e-10)
 waldo::compare(aa$area$area_ci, 1.96*cal_ref_areas$SE, tolerance = 1e-4)
 ```
 
-```{r}
+```{r include = FALSE}
 
 # can we estimate the areas also via Bayes formula?
 # $P(\text{referentie}=A) = \frac{UA}{PA}P(\text{kaart} = A)$
@@ -309,9 +403,16 @@ cal_pa <- ReGenesees::svystatTM(
   deff = TRUE)
 waldo::compare(aa$stats$pa, cal_pa$Mean.oa, tolerance = 1e-10)
 waldo::compare(aa$stats$pa_se, cal_pa$SE.Mean.oa, tolerance = 1e-2)
-hist(aa$stats$pa_se -  cal_pa$SE.Mean.oa)
-plot(aa$stats$pa_se, cal_pa$SE.Mean.oa)
-abline(0, 1)
+
+# hist(aa$stats$pa_se -  cal_pa$SE.Mean.oa)
+# plot(aa$stats$pa_se, cal_pa$SE.Mean.oa)
+# abline(0, 1)
+
+```
+
+```{r}
+#| label: fig-UA_PA
+#| fig-cap: "UA and PA based on the Regenesees package."
 
 areas_df %>%
   inner_join(
@@ -348,6 +449,10 @@ areas_df %>%
 # +
 #   facet_grid(paste0("Change: ", change) ~ ., scales = "free", space = "free")
 
+
+```
+
+```{r eval = FALSE}
 # relative margins of error larger than 1 result in
 # negative lower bound of design-based confidence interval
 areas_df %>%

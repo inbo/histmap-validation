@@ -95,7 +95,7 @@ book:
     - intro.qmd
     - summary.qmd
     - accuracy.qmd
-    - references.qmd
+    # - references.qmd
   downloads: pdf
   open-graph: true
   sidebar:
@@ -104,7 +104,7 @@ book:
   navbar:
     left:
       - text: Cover
-        file: index.md
+        file: index.qmd
     right:
       - icon: mastodon
         href: https://mastodon.online/@inbo

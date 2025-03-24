@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl-BE" xml:lang="nl-BE"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<meta name="author" content="Robrecht Dockx">
+<meta name="author" content="Hans Van Calster">
+<meta name="author" content="Third Author">
+<style>
+:root { --navbar-background: #356196; --navbar-text-color: #FFFFFF; --navbar-hover-color: #BDDDD7; --heading-color: #356196; --text-color: #595959; --link-color: #C04384; --missing-color: #C63526; --callout-tip-color: #729BB7; --callout-tip-background: #729BB744; --callout-caution-color: #EF972C; --callout-caution-background: #EF972C44; --callout-warning-color: #FFCD34; --callout-warning-background: #FFCD3444; --callout-important-color: #BE3254; --callout-important-background: #BE325444; --code-error-border: #BE3254; --code-error-background: #BE325444; --code-warning-border: #EF972C; --code-warning-background: #EF972C44; --code-argument: #EF972C; --code-comment: #282A72; --code-function: #356196; --code-logical: #C63526; --code-number: #C63526; --code-string: #006635; --code-background: #F3F3F3; --code-border: #8E9DA7; --callout-note-color: #282A72; --callout-note-background: #282A7244;}
+</style>
+<style type="text/css">
+#watermark{
+  position: fixed;
+  top: 50%;
+  left: 0%;
+  z-index: 999;
+  transform: rotate(-90deg);
+  opacity: 0.2;
+  font-size: 5em;
+  text-align: center;
+}
+</style>
+<title>3&nbsp; Accuracy with strata – histmap_validation_quarto</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./summary.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "Geen resultaten",
+    "search-matching-documents-text": "Gevonden documenten",
+    "search-copy-link-title": "Kopieer link om te zoeken",
+    "search-hide-matches-text": "Extra overeenkomsten verbergen",
+    "search-more-match-text": "meer overeenkomst in dit document",
+    "search-more-matches-text": "meer overeenkomsten in dit document",
+    "search-clear-button-title": "Wissen",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Annuleren",
+    "search-submit-button-title": "Verzenden",
+    "search-label": "Zoeken"
+  }
+}</script>
+<link href="site_libs/tabwid-1.1.3/tabwid.css" rel="stylesheet">
+
+<script src="site_libs/tabwid-1.1.3/tabwid.js"></script>
+
+
+
+<link rel="stylesheet" href="_extensions/inbo/flandersqmd-book/css/flanders_generic.css">
+<meta property="og:title" content="3&nbsp; Accuracy with strata – histmap_validation_quarto">
+<meta property="og:description" content="">
+<meta property="og:image" content="./cover.png">
+<meta property="og:site_name" content="histmap_validation_quarto">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">histmap_validation_quarto</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Zoeken"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Schakel navigatie" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="./index.html" aria-current="page"> 
+<span class="menu-text">Cover</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://mastodon.online/@inbo"> <i class="bi bi-mastodon" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.facebook.com/INBOVlaanderen/"> <i class="bi bi-facebook" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-bi-github" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-menu-bi-github">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/inbo">
+ <span class="dropdown-text">Source Code</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/inbo">
+ <span class="dropdown-text">Report a Bug</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+    <a href="./histmap_validation_quarto.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Schakel zijbalknavigatie" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./accuracy.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Accuracy with strata</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Schakel zijbalknavigatie" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
+      <a href="./index.html" class="sidebar-logo-link">
+      <img src="./cover.png" alt="" class="sidebar-logo py-0 d-lg-inline d-none">
+      </a>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">De data</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./summary.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Clustering</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./accuracy.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Accuracy with strata</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Inhoudsopgave</h2>
+   
+  <ul>
+  <li><a href="#user-and-producers-accurcay-using-hand-coded-functions-based-on-olofsson-et-al" id="toc-user-and-producers-accurcay-using-hand-coded-functions-based-on-olofsson-et-al" class="nav-link active" data-scroll-target="#user-and-producers-accurcay-using-hand-coded-functions-based-on-olofsson-et-al"><span class="header-section-number">3.1</span> User and producers accurcay using hand coded functions based on Olofsson et al</a></li>
+  <li><a href="#mapac" id="toc-mapac" class="nav-link" data-scroll-target="#mapac"><span class="header-section-number">3.2</span> MAPAC</a></li>
+  <li><a href="#regenesees" id="toc-regenesees" class="nav-link" data-scroll-target="#regenesees"><span class="header-section-number">3.3</span> ReGenesees</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header">
+<h1 class="title display-7"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Accuracy with strata</span></h1>
+<div id="watermark">This is a watermark</div>
+</header>
+
+
+<section id="user-and-producers-accurcay-using-hand-coded-functions-based-on-olofsson-et-al" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="user-and-producers-accurcay-using-hand-coded-functions-based-on-olofsson-et-al"><span class="header-section-number">3.1</span> User and producers accurcay using hand coded functions based on Olofsson et al</h2>
+<p>De functie confusion_matrix() berekent de map-relevante versie van de foutmatrix. Map-relevant betekent dat elke p_ij gewogen wordt op basis van de oppervlakteverhouding voor elk stratum (kaartklasse). Dit verschilt van de standaard caret::confusionMatrix, die werd gebruikt in de functie calculate_accuracy(). Zie ook https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html.</p>
+<div class="cell">
+<div id="tbl-accu_own_funct" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-accu_own_funct-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabel&nbsp;3.1: User and producer accuracy based on own formules based on Olofsson et al.. De overall accuracy is {{round(est, 3)}} met een variantie van {{round(var, 2)}}.
+</figcaption>
+<div aria-describedby="tbl-accu_own_funct-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-87fa5006{}.cl-87eefdfa{font-family:'Arial';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-87f37f06{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-87f37f10{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-87f3b32c{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-87f3b336{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-87f3b340{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-87f3b341{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-87f3b34a{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-87f3b34b{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-87fa5006"><thead><tr style="overflow-wrap:break-word;"><th class="cl-87f3b32c"><p class="cl-87f37f06"><span class="cl-87eefdfa">class</span></p></th><th class="cl-87f3b336"><p class="cl-87f37f10"><span class="cl-87eefdfa">ua_est</span></p></th><th class="cl-87f3b336"><p class="cl-87f37f10"><span class="cl-87eefdfa">ua_var</span></p></th><th class="cl-87f3b336"><p class="cl-87f37f10"><span class="cl-87eefdfa">ua_low</span></p></th><th class="cl-87f3b336"><p class="cl-87f37f10"><span class="cl-87eefdfa">ua_high</span></p></th><th class="cl-87f3b336"><p class="cl-87f37f10"><span class="cl-87eefdfa">pa_est</span></p></th><th class="cl-87f3b336"><p class="cl-87f37f10"><span class="cl-87eefdfa">pa_var</span></p></th><th class="cl-87f3b336"><p class="cl-87f37f10"><span class="cl-87eefdfa">pa_low</span></p></th><th class="cl-87f3b336"><p class="cl-87f37f10"><span class="cl-87eefdfa">pa_high</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-87f3b340"><p class="cl-87f37f06"><span class="cl-87eefdfa">Fully Dynamic (All Different)</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.551</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.005</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.410</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.692</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.774</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.004</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.657</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.891</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-87f3b340"><p class="cl-87f37f06"><span class="cl-87eefdfa">Reverted (1 LU in between)</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.664</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.002</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.582</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.746</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.727</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.001</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.664</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.791</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-87f3b340"><p class="cl-87f37f06"><span class="cl-87eefdfa">Reverted (2 LUs in between)</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.538</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.021</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.256</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.821</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.528</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.011</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.320</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.736</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-87f3b340"><p class="cl-87f37f06"><span class="cl-87eefdfa">Shifted (1 Change)</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.820</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.000</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.792</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.848</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.809</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.000</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.781</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.837</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-87f3b340"><p class="cl-87f37f06"><span class="cl-87eefdfa">Shifted (2 LU Changes)</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.699</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.001</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.650</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.748</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.780</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.000</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.745</span></p></td><td class="cl-87f3b341"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.815</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-87f3b34a"><p class="cl-87f37f06"><span class="cl-87eefdfa">Stable (No Change)</span></p></td><td class="cl-87f3b34b"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.927</span></p></td><td class="cl-87f3b34b"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.000</span></p></td><td class="cl-87f3b34b"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.905</span></p></td><td class="cl-87f3b34b"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.949</span></p></td><td class="cl-87f3b34b"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.760</span></p></td><td class="cl-87f3b34b"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.000</span></p></td><td class="cl-87f3b34b"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.723</span></p></td><td class="cl-87f3b34b"><p class="cl-87f37f10"><span class="cl-87eefdfa">0.796</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="mapac" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="mapac"><span class="header-section-number">3.2</span> MAPAC</h2>
+<p>Het MAPAC-pakket (Multiscale Analysis of Pattern and Change) is een R-pakket ontwikkeld aan de Humboldt-Universität zu Berlin voor het analyseren van ruimtelijke patronen en veranderingen in landgebruik. Het biedt tools om veranderingen in landgebruik en landdekking over verschillende tijdschalen en resoluties te bestuderen.</p>
+<p>De gebruikt formules in dit package maken ook gebruik van de formules gedefinieerd door Olofsson et al.&nbsp;</p>
+<p>De functie mapac::aa_card wordt gebruikt voor het berekenen van de Area Adjusted Classification Accuracy (AA-Card). Deze maat is een aangepast beoordelingscriterium voor de nauwkeurigheid van een landgebruikscategorie, waarbij de oppervlakten van verschillende landgebruikstypes in overweging worden genomen.</p>
+<p>Er werden geen significante verschillen gedetecteerd tussen de aa_card functie en de handgeschreven functies.</p>
+<div class="cell">
+<div id="tbl-accu_own_mapac" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-accu_own_mapac-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Tabel&nbsp;3.2: User and producer accuracy based on own formules based on the MAPAC package. De overall accuracy is {{round(est, 3)}} met een variantie van {{round(var, 3)}}.
+</figcaption>
+<div aria-describedby="tbl-accu_own_mapac-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-88245c02{}.cl-881a6d50{font-family:'Arial';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-881defb6{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-881defc0{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-881e0d5c{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-881e0d66{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-881e0d70{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-881e0d71{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-881e0d72{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-881e0d7a{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-88245c02"><thead><tr style="overflow-wrap:break-word;"><th class="cl-881e0d5c"><p class="cl-881defb6"><span class="cl-881a6d50">class</span></p></th><th class="cl-881e0d66"><p class="cl-881defc0"><span class="cl-881a6d50">ua</span></p></th><th class="cl-881e0d66"><p class="cl-881defc0"><span class="cl-881a6d50">pa</span></p></th><th class="cl-881e0d66"><p class="cl-881defc0"><span class="cl-881a6d50">p_i</span></p></th><th class="cl-881e0d66"><p class="cl-881defc0"><span class="cl-881a6d50">p_i_se</span></p></th><th class="cl-881e0d66"><p class="cl-881defc0"><span class="cl-881a6d50">ua_se</span></p></th><th class="cl-881e0d66"><p class="cl-881defc0"><span class="cl-881a6d50">pa_se</span></p></th><th class="cl-881e0d66"><p class="cl-881defc0"><span class="cl-881a6d50">w</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-881e0d70"><p class="cl-881defb6"><span class="cl-881a6d50">Fully Dynamic (All Different)</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.551</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.774</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.032</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.004</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.071</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.060</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.044</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-881e0d70"><p class="cl-881defb6"><span class="cl-881a6d50">Reverted (1 LU in between)</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.664</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.727</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.094</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.006</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.042</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.032</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.103</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-881e0d70"><p class="cl-881defb6"><span class="cl-881a6d50">Reverted (2 LUs in between)</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.538</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.528</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.015</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.003</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.138</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.104</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.014</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-881e0d70"><p class="cl-881defb6"><span class="cl-881a6d50">Shifted (1 Change)</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.820</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.809</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.385</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.009</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.014</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.014</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.380</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-881e0d70"><p class="cl-881defb6"><span class="cl-881a6d50">Shifted (2 LU Changes)</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.699</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.780</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.234</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.008</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.025</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.018</span></p></td><td class="cl-881e0d71"><p class="cl-881defc0"><span class="cl-881a6d50">0.261</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-881e0d72"><p class="cl-881defb6"><span class="cl-881a6d50">Stable (No Change)</span></p></td><td class="cl-881e0d7a"><p class="cl-881defc0"><span class="cl-881a6d50">0.927</span></p></td><td class="cl-881e0d7a"><p class="cl-881defc0"><span class="cl-881a6d50">0.760</span></p></td><td class="cl-881e0d7a"><p class="cl-881defc0"><span class="cl-881a6d50">0.241</span></p></td><td class="cl-881e0d7a"><p class="cl-881defc0"><span class="cl-881a6d50">0.006</span></p></td><td class="cl-881e0d7a"><p class="cl-881defc0"><span class="cl-881a6d50">0.011</span></p></td><td class="cl-881e0d7a"><p class="cl-881defc0"><span class="cl-881a6d50">0.018</span></p></td><td class="cl-881e0d7a"><p class="cl-881defc0"><span class="cl-881a6d50">0.198</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="regenesees" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="regenesees"><span class="header-section-number">3.3</span> ReGenesees</h2>
+<p>ReGenesees (R Evolved Generalized Software for Sampling Estimates and Errors in Surveys) is een R-pakket voor het uitvoeren van design-based en model-assisted analyses van complexe steekproeven. Het ondersteunt multistage, gestratificeerde, geclusterde en ongelijk gewogen steekproefontwerpen. Voor niet-lineaire (gladde) schatters wordt de steekproefvariantie geschat met behulp van Taylor-reeks linearisatie.</p>
+<p>De volgende stappen werden uitgevoerd:</p>
+<ul>
+<li>Elke predictie werd gekoppeld aan de totale oppervlakte er beschikbaar is van dat clustering niveau en de frequentie van de voorkomende clustering niveaus.</li>
+<li>de Inverse Probability Sampling (IPS) werd bepaald per clustering niveau door zijn frequentie te delen door zijn oppervlakte. De inverse hiervan wordt beschouwd als een gewicht voor de sampling units.</li>
+<li>Aan elke observatie werd een bepaalde naam gegeven (ids)</li>
+</ul>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 7046298</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -5707278</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># Data frame of known totals for a *global* calibration task
+- Number of rows:         1
+- Number of columns:      6
+- Number of known totals: 6
+
+# The data frame structure is as follows
+## Columns 1-6 identify known totals organized into *1 BLOCK* 
+
+ - BLOCK 1 ---------------------------------------------------------------- 
+ - Benchmark:           Counts of map 
+ - Known totals:        6 
+ - Auxiliary variables: 6 
+ - Columns:             1-6 
+
+    1                               2                           
+aux "Fully Dynamic (All Different)" "Reverted (1 LU in between)"
+    3                             4                    5                       
+aux "Reverted (2 LUs in between)" "Shifted (1 Change)" "Shifted (2 LU Changes)"
+    6                   
+aux "Stable (No Change)"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+# Checking Known Totals dataframe: OK</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Calibrated, Stratified 1 - Stage Cluster Sampling Design
+- [6] strata
+- [1822] clusters
+
+Call:
+ReGenesees::e.calibrate(design = design, df.population = df.pop, 
+    calmodel = ~map - 1)
+
+Weights:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  121.1   136.7   136.7   152.2   170.2   403.7 
+
+Sample stratum sizes: 
+     Fully Dynamic (All Different) Reverted (1 LU in between)
+Obs                            147                        640
+PSUs                            49                        128
+     Reverted (2 LUs in between) Shifted (1 Change) Shifted (2 LU Changes)
+Obs                           52               3720                   2052
+PSUs                          13                744                    342
+     Stable (No Change)
+Obs                2184
+PSUs                546
+
+Population stratum sizes: 
+     Stable (No Change) Shifted (1 Change) Reverted (1 LU in between)
+PSUs           264469.5           508538.9                   138127.1
+     Shifted (2 LU Changes) Fully Dynamic (All Different)
+PSUs               349213.5                       59339.7
+     Reverted (2 LUs in between)
+PSUs                     19331.8
+
+Data variables:
+ [1] "map"          "ref"          "area_m2.x"    "area_ha"      "area_m2.y"   
+ [6] "n"            "ips"          "weights"      "ids"          "ones"        
+[11] "oa"           "n_ref"        "prop_area_ha" "weights.cal" </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    g.min     g.max 
+0.1666667 0.3333333 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>All Calibration Constraints (6) fulfilled (at tolerance level epsilon = 1e-07).</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  121.1   136.7   136.7   152.2   170.2   403.7 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       Total           SE
+ones 1339020 1.673213e-09</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>✔ No differences</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>`old`: 10231.8 15214.0 8133.5 22497.0 21597.9 16417.0
+`new`: 10227.2 15205.8 8130.1 22483.6 21586.4 16406.8</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>✔ No differences</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>`old`: 0.010423
+`new`: 0.010417</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>✔ No differences</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>`old`: 0.071 0.042 0.138 0.014 0.025 0.011
+`new`: 0.072 0.042 0.144 0.014 0.025 0.011</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="accuracy_files/figure-html/accuracy_regenesees-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="accuracy_files/figure-html/accuracy_regenesees-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>✔ No differences</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>✔ No differences</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-UA_PA" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-UA_PA-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="accuracy_files/figure-html/fig-UA_PA-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-UA_PA-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figuur&nbsp;3.1: UA and PA based on the Regenesees package.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+
+
+</section>
+
+<p><a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons-License" style="border-width:0" class="ccby"></a>  Dockx, R. et al. (9999) <a href="https://doi.org/10.5281/zenodo.842223">10.5281/zenodo.842223</a></p></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Gekopieerd!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Gekopieerd!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./summary.html" class="pagination-link" aria-label="Clustering">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Clustering</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

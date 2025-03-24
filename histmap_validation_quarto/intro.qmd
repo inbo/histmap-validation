@@ -15,6 +15,7 @@ library(rprojroot)
 library(devtools)
 devtools::install_github("gbganalyst/forstringr")
 library(forstringr)
+library(flextable)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
                   comment = "", error = FALSE)
@@ -34,8 +35,8 @@ data_LU <- read.csv(paste0(data_folder, "/raster_report_LUC.xlsx - report land u
 
 # Functions 
 
-source("./clustering_functions.R")
-source("./nca_functions.R")
+source("./scripts/clustering_functions.R")
+source("./scripts/nca_functions.R")
 
 
 ```
@@ -47,7 +48,7 @@ Gedurende de analyses zal er gebruik gemaakt worden van twee datasets:
 
 Deze dataset bevat `r dim(data)[1]` observaties en `r dim(data)[2]` variabelen. De observaties vertegenwoordigen punten die gestratificeerd zijn getrokken uit een puntenwolk. Voor elk van de 30 verschillende strata, waarbij een stratum een type landgebruik representeert, werden punten getrokken. De punten werden binnen elk stratum getrokken op volgorde van toenemende ID. In totaal werden er 2448 punten geselecteerd uit de puntenwolk en op de kaart van 1969 als uitgangspunt. Alle punten in de overlay met een landgebruik dat tussen 1778 en 1969 niet veranderde, zijn gevalideerd. Voor de punten die behoren tot klassen met landgebruik dat tussen 1778 en 1969 wel veranderde en waarvan minimaal 10 punten in de overlay voorkomen, werd 30% gevalideerd (dus minimaal 3 punten). De belangrijkste variabelen zijn `r knitr::combine_words(colnames(data)[c(dim(data)[2]-1, dim(data)[2])], and = " en ")`, welke respectievelijk de referentiewaarde en de geobserveerde waarde aangeven.
 
-- Een [dataset](https://docs.google.com/spreadsheets/d/1yI-kd37vwDwbLmGGfeZnF1-fiEj1Gzot/edit?gid=1403611980#gid=1403611980) met alle mogelijke veranderingen in landgebruik (LU) zijn er in totaal $9^4$ (`r 10**4`) combinaties, aangezien er 9 verschillende landgebruikstypes en 4 verschillende tijdstippen zijn. De dataset bevat echter slechts `r dim(data_lu)[1]` van deze mogelijkheden. Voor elke combinatie worden de totale oppervlakte (in $m^2$ en ha) en de cumulatieve oppervlakte (in ha en %) weergegeven.
+- Een [dataset](https://docs.google.com/spreadsheets/d/1yI-kd37vwDwbLmGGfeZnF1-fiEj1Gzot/edit?gid=1403611980#gid=1403611980) met alle mogelijke veranderingen in landgebruik (LU) zijn er in totaal $10^4$ combinaties, aangezien er 9 verschillende landgebruikstypes en 4 verschillende tijdstippen zijn. De dataset bevat echter slechts `r dim(data_LU)[1]` van deze mogelijkheden. Voor elke combinatie worden de totale oppervlakte (in $m^2$ en ha) en de cumulatieve oppervlakte (in ha en %) weergegeven.
 
 | LU nummer |LU naam                        |
 |:---------:|:-----------------------------:|
@@ -60,6 +61,7 @@ Deze dataset bevat `r dim(data)[1]` observaties en `r dim(data)[2]` variabelen. 
 |3          |bos                            |
 |2          |bebouwing, tuin, infrastructuur|
 |1          |akker                          |
+|0          |                               |
 
 : De gebruikte landgebruikstypes
 
@@ -147,13 +149,13 @@ De volgende controles werden uitgevoerd om de consistentie van de gegevens te wa
 
 De referentie was identiek aan de afzonderlijke referentiejaren. 
 
-- Of de lengte van de referentie precies 3 is
+- Of de lengte van de referentie precies 4 is
 
-Er werden `r dim(check2_fail)[1]` observaties gevonden met een waarde verschillend van 3 (fid zijn `r knitr:: combine_words(check2_fail$fid, and = " en ")`. 
+Er werden `r dim(check2_fail)[1]` observaties gevonden met een waarde verschillend van 3 (fid zijn `r knitr:: combine_words(check2_fail$fid, and = " en ")`). 
 
-- Of de lengte van de observatie precies 4 is
+- Of de lengte van de observatie/predicties precies 4 is
 
-Er werden `r dim(check3_fail)[1]` observaties gevonden met een waarde verschillend van 4 (fid zijn `r knitr:: combine_words(check3_fail$fid, and = " en ")`.
+Er werden `r dim(check3_fail)[1]` observaties/predicites gevonden met een waarde verschillend van 4 (fid zijn `r knitr:: combine_words(check3_fail$fid, and = " en ")`. Al deze observaties hebben slechts een lengte van 3. Een "0" werd vooraan ieder van deze observaties toegevoegd. 
 
 - Er werden geen ontbrekende data gedetecteerd voor de referentiewaarde en de geobserveerde waarden 
 
@@ -199,6 +201,8 @@ data <- data %>% mutate(
   reference = factor(reference_comp4, levels = all_levels)
 )
 
+saveRDS(data, file = "./data/cleaned_data.RDS")
+
 
 ## Calculate on relveled variables
 
@@ -218,5 +222,5 @@ tempdata <- flextable(as.data.frame(t(res1$byClass)) %>%
 
 ```
 
-  In totaal zijn er `r length(all_levels)**2` verschillende combinaties mogelijk en er zijn slechts `r dim(data)[1]` observaties. Dit geeft aanleiding tot een groot aantal ontbrekende en laag aantal observaties op zowel de diagonaal als niet diagonaal waarden van de error matrix.  Hierdoor kan er geen goede bepaling gedaan worden van de UA, PA en OA. Om dit probleem op te lossen zullen de observaties geclusterd worden
+  In totaal zijn er `r 10**4` verschillende combinaties mogelijk en er zijn slechts `r dim(data)[1]` observaties. Dit geeft aanleiding tot een groot aantal ontbrekende en laag aantal observaties op zowel de diagonaal als niet diagonaal waarden van de error matrix.  Hierdoor kan er geen goede bepaling gedaan worden van de UA, PA en OA. Om dit probleem op te lossen zullen de observaties geclusterd worden. 
 
