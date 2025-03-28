@@ -7,23 +7,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <meta name="author" content="Robrecht Dockx">
 <meta name="author" content="Hans Van Calster">
-<meta name="author" content="Third Author">
+<meta name="author" content="Luc De Keersmaeker">
 <style>
 :root { --navbar-background: #356196; --navbar-text-color: #FFFFFF; --navbar-hover-color: #BDDDD7; --heading-color: #356196; --text-color: #595959; --link-color: #C04384; --missing-color: #C63526; --callout-tip-color: #729BB7; --callout-tip-background: #729BB744; --callout-caution-color: #EF972C; --callout-caution-background: #EF972C44; --callout-warning-color: #FFCD34; --callout-warning-background: #FFCD3444; --callout-important-color: #BE3254; --callout-important-background: #BE325444; --code-error-border: #BE3254; --code-error-background: #BE325444; --code-warning-border: #EF972C; --code-warning-background: #EF972C44; --code-argument: #EF972C; --code-comment: #282A72; --code-function: #356196; --code-logical: #C63526; --code-number: #C63526; --code-string: #006635; --code-background: #F3F3F3; --code-border: #8E9DA7; --callout-note-color: #282A72; --callout-note-background: #282A7244;}
 </style>
-<style type="text/css">
-#watermark{
-  position: fixed;
-  top: 50%;
-  left: 0%;
-  z-index: 999;
-  transform: rotate(-90deg);
-  opacity: 0.2;
-  font-size: 5em;
-  text-align: center;
-}
-</style>
-<title>1&nbsp; De data – histmap_validation_quarto</title>
+<title>1&nbsp; De data – Kartering historische landgebruiksveranderingen</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -129,10 +117,10 @@ window.Quarto = {
 </script>
 
 <link rel="stylesheet" href="_extensions/inbo/flandersqmd-book/css/flanders_generic.css">
-<meta property="og:title" content="1&nbsp; De data – histmap_validation_quarto">
+<meta property="og:title" content="1&nbsp; De data – Kartering historische landgebruiksveranderingen">
 <meta property="og:description" content="">
 <meta property="og:image" content="./cover.png">
-<meta property="og:site_name" content="histmap_validation_quarto">
+<meta property="og:site_name" content="Kartering historische landgebruiksveranderingen">
 </head>
 
 <body class="nav-sidebar floating nav-fixed">
@@ -143,7 +131,7 @@ window.Quarto = {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">histmap_validation_quarto</span>
+    <span class="navbar-title">Kartering historische landgebruiksveranderingen</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Zoeken"></div>
@@ -188,7 +176,7 @@ window.Quarto = {
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
-    <a href="./histmap_validation_quarto.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
+    <a href="./Kartering-historische-landgebruiksveranderingen.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -257,7 +245,6 @@ window.Quarto = {
 
 <header id="title-block-header">
 <h1 class="title display-7"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">De data</span></h1>
-<div id="watermark">This is a watermark</div>
 </header>
 
 
@@ -265,9 +252,9 @@ window.Quarto = {
 <ul>
 <li>Een <a href="https://docs.google.com/spreadsheets/d/1Qk7hgajuzkvmWGGcqCOz3KUxLxcIr0KE/edit?gid=1736581617#gid=1736581617">dataset</a> met de geobserveerde waarde en referentiewaarde.</li>
 </ul>
-<p>Deze dataset bevat 1824 observaties en 13 variabelen. De observaties vertegenwoordigen punten die gestratificeerd zijn getrokken uit een puntenwolk. Voor elk van de 30 verschillende strata, waarbij een stratum een type landgebruik representeert, werden punten getrokken. De punten werden binnen elk stratum getrokken op volgorde van toenemende ID. In totaal werden er 2448 punten geselecteerd uit de puntenwolk en op de kaart van 1969 als uitgangspunt. Alle punten in de overlay met een landgebruik dat tussen 1778 en 1969 niet veranderde, zijn gevalideerd. Voor de punten die behoren tot klassen met landgebruik dat tussen 1778 en 1969 wel veranderde en waarvan minimaal 10 punten in de overlay voorkomen, werd 30% gevalideerd (dus minimaal 3 punten). De belangrijkste variabelen zijn LU_1969_1873_1774_true en LU_2022_1969_1873_1774_pred, welke respectievelijk de referentiewaarde en de geobserveerde waarde aangeven.</p>
+<p>Deze dataset bevat 1824 observaties en 13 variabelen. De observaties vertegenwoordigen punten die gestratificeerd zijn getrokken uit een puntenwolk. Voor elk van de 30 verschillende strata, waarbij een stratum een type landgebruik representeert, werden punten getrokken. De punten werden binnen elk stratum getrokken op volgorde van toenemende ID. In totaal werden er 2448 punten geselecteerd uit de puntenwolk en op de kaart van 1969 als uitgangspunt. Alle punten in de overlay met een landgebruik dat tussen 1778 en 1969 niet veranderde, zijn gevalideerd. Voor de punten die behoren tot klassen met landgebruik dat tussen 1778 en 1969 wel veranderde en waarvan minimaal 10 punten in de overlay voorkomen, werd 30% gevalideerd (dus minimaal 3 punten). De belangrijkste variabelen zijn LU_1969_1873_1774_true en LU_2022_1969_1873_1774_pred, welke respectievelijk de referentiewaarde en de geobserveerde waarde (predicties) aangeven.</p>
 <ul>
-<li>Een <a href="https://docs.google.com/spreadsheets/d/1yI-kd37vwDwbLmGGfeZnF1-fiEj1Gzot/edit?gid=1403611980#gid=1403611980">dataset</a> met alle mogelijke veranderingen in landgebruik (LU) zijn er in totaal <span class="math inline">9^4</span> (10^{4}) combinaties, aangezien er 9 verschillende landgebruikstypes en 4 verschillende tijdstippen zijn. De dataset bevat echter slechts 6749 van deze mogelijkheden. Voor elke combinatie worden de totale oppervlakte (in <span class="math inline">m^2</span> en ha) en de cumulatieve oppervlakte (in ha en %) weergegeven.</li>
+<li>Een <a href="https://docs.google.com/spreadsheets/d/1yI-kd37vwDwbLmGGfeZnF1-fiEj1Gzot/edit?gid=1403611980#gid=1403611980">dataset</a> met alle mogelijke veranderingen in landgebruik (LU) zijn er in totaal <span class="math inline">10^4</span> combinaties, aangezien er 9 verschillende landgebruikstypes en 4 verschillende tijdstippen zijn. De dataset bevat echter slechts 6749 van deze mogelijkheden. Dit impliceert dat enkele combinaties niet voorkomen in Vlaanderen. Voor elke combinatie worden de totale oppervlakte (in <span class="math inline">m^2</span> en ha) en de cumulatieve oppervlakte (in ha en %) weergegeven.</li>
 </ul>
 <table class="caption-top table">
 <caption>De gebruikte landgebruikstypes</caption>
@@ -314,6 +301,10 @@ window.Quarto = {
 <td style="text-align: center;">1</td>
 <td style="text-align: center;">akker</td>
 </tr>
+<tr class="even">
+<td style="text-align: center;">0</td>
+<td style="text-align: center;"></td>
+</tr>
 </tbody>
 </table>
 <section id="initiële-data-verkenning" class="level2" data-number="1.1">
@@ -324,22 +315,22 @@ window.Quarto = {
 </ul>
 <p>De referentie was identiek aan de afzonderlijke referentiejaren.</p>
 <ul>
-<li>Of de lengte van de referentie precies 3 is</li>
+<li>Of de lengte van de referentie precies 4 is</li>
 </ul>
-<p>Er werden 2 observaties gevonden met een waarde verschillend van 3 (fid zijn 806 en 1393.</p>
+<p>Er werden 2 observaties gevonden met een waarde verschillend van 4 (fid zijn 806 en 1393).</p>
 <ul>
-<li>Of de lengte van de observatie precies 4 is</li>
+<li>Of de lengte van de observatie/predicties precies 4 is</li>
 </ul>
-<p>Er werden 57 observaties gevonden met een waarde verschillend van 4 (fid zijn 69, 95, 98, 105, 129, 131, 162, 194, 259, 260, 263, 298, 311, 395, 397, 458, 465, 487, 488, 507, 557, 588, 683, 692, 762, 771, 783, 906, 924, 938, 966, 1006, 1048, 1111, 1114, 1128, 1149, 1166, 1182, 1194, 1196, 1261, 1294, 1301, 1305, 1397, 1405, 1417, 1447, 1556, 1620, 1709, 1735, 1737, 1746, 1816, en 1819.</p>
+<p>Er werden 57 observaties/predicites gevonden met een waarde verschillend van 4 (fid zijn 69, 95, 98, 105, 129, 131, 162, 194, 259, 260, 263, 298, 311, 395, 397, 458, 465, 487, 488, 507, 557, 588, 683, 692, 762, 771, 783, 906, 924, 938, 966, 1006, 1048, 1111, 1114, 1128, 1149, 1166, 1182, 1194, 1196, 1261, 1294, 1301, 1305, 1397, 1405, 1417, 1447, 1556, 1620, 1709, 1735, 1737, 1746, 1816, en 1819. Al deze observaties hebben slechts een lengte van 3. Een “0” werd vooraan ieder van deze observaties toegevoegd.</p>
 <ul>
 <li>Er werden geen ontbrekende data gedetecteerd voor de referentiewaarde en de geobserveerde waarden</li>
 </ul>
-<p>In totaal zijn er 226576 verschillende combinaties mogelijk en er zijn slechts 1822 observaties. Dit geeft aanleiding tot een groot aantal ontbrekende en laag aantal observaties op zowel de diagonaal als niet diagonaal waarden van de error matrix. Hierdoor kan er geen goede bepaling gedaan worden van de UA, PA en OA. Om dit probleem op te lossen zullen de observaties geclusterd worden</p>
+<p>In totaal zijn er 10^{4} verschillende combinaties mogelijk en er zijn slechts 1822 observaties. Dit geeft aanleiding tot een groot aantal ontbrekende en laag aantal observaties op zowel de diagonaal als niet diagonaal waarden van de error matrix. Hierdoor kan er geen goede bepaling gedaan worden van de UA, PA en OA. Om dit probleem op te lossen zullen de observaties geclusterd worden.</p>
 
 
 </section>
 
-<p><a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons-License" style="border-width:0" class="ccby"></a>  Dockx, R. et al. (9999) <a href="https://doi.org/10.5281/zenodo.842223">10.5281/zenodo.842223</a></p></main> <!-- /main -->
+<p><a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons-License" style="border-width:0" class="ccby"></a>  Dockx, R. et al. (2025) <a href="https://doi.org/10.5281/zenodo.842223">10.5281/zenodo.842223</a></p></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {

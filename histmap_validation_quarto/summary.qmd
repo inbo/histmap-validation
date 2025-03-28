@@ -1,6 +1,6 @@
 # Clustering
 
-```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE}
+```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE, warning = FALSE}
 
 library(tidyverse)
 library(terra)
@@ -265,7 +265,7 @@ De clusteringmethode wordt toegepast met een loop. Voor elke methode:
 - Worden de niveaus van de gegevens consistent gehouden.
 
 Input:
-```{r echo = TRUE, eval = TRUE, include = FALSE}
+```{r echo = TRUE, eval = TRUE}
 # Simulatiedata
 data_test <- data.frame(
   observed = c("1122", "2233", "3344", "4455"),
@@ -291,8 +291,13 @@ Output:
 print(resultaat)
 ```
 
+## Voorbeeld 
+
+De clustering werd toegepast op de gegeven dataset. De functie 'change_frequency' werd gebruikt als clusteringsmethode. Na de clustering werd de overall accuracy (OA) de user accuracy (UA) en producer accuracy bepaald (PA) (@tbl-output_clustering) en geplot (@fig-UA_PA). Tijdens deze berekening werd er geen rekening gehouden met de oppervlakte verhouding van elk stratum. 
+
 
 ```{r calc_res1}
+
 test_clustering <- clustering(clustering_method = c("mask_follow_up",
                                            "mask_follow_up_intensity",
                                            "make_bin_change",
@@ -304,6 +309,10 @@ res1 <- calculate_accuracy(mapdata = test_clustering$prediction_change_frequency
                            refdata = test_clustering$reference_change_frequency)
 
 OA <-  round(100 * unname(res1$overall["Accuracy"]), digits = 2)
+OA_LL <- round(100 * unname(res1$overall["AccuracyLower"]), digits = 2)
+OA_UL <- round(100 * unname(res1$overall["AccuracyUpper"]), digits = 2)
+
+
 # UA PA
 # UA = precision (this does NOT equal specificity) = positive predictive value
 # PA = recall = sensitivity = true positive fraction
@@ -321,7 +330,7 @@ tempdata <- flextable(as.data.frame(t(res1$byClass)) %>%
 
 ```{r eval = TRUE}
 #| label: tbl-output_clustering
-#| tbl-cap: De totala accuraatheid is {{round(OA, 3)}} met een variantie van.
+#| tbl-cap: !expr 'paste("De totale accuraatheid is ", OA , " met een 95% CI van [", OA_LL, ";", OA_UL, "]." )'
 
 tempdata %>% set_table_properties(layout = "fixed")
 
@@ -331,7 +340,7 @@ tempdata %>% set_table_properties(layout = "fixed")
 
 ```{r plot_UA_PA, eval = TRUE}
 #| label: fig-UA_PA
-#| fig-cap: "Plot of the PA and U after clustering."
+#| fig-cap: "Plot of the PA and UA after clustering."
 
 # Get UA and PA and plot them
 
@@ -348,11 +357,11 @@ data.frame(
   scale_color_discrete(name = "land use") +
   xlab("user's accuracy (precision)") +
   ylab("producer's accuracy (recall)") +
-  theme_bw()
+  theme(legend.position = "bottom")
 
 ```
 
-De functie clustering_area is een vereenvoudigde versie van clustering functie, die het mogelijk maakt om clustering toe te passen op één dataset zonder een externe referentie.Dit betekent dat de clustering puur wordt toegepast op de opgegeven data (variable) zonder externe vergelijkingen. Dit is handig voor de dataset met alle mogelijke veranderingen in landgebruik (LU). 
+De functie clustering_area is een vereenvoudigde versie van clustering functie, die het mogelijk maakt om clustering toe te passen op één dataset zonder een externe referentie. Dit betekent dat de clustering puur wordt toegepast op de opgegeven data (variable) zonder externe vergelijkingen. Dit is handig voor de dataset met alle mogelijke veranderingen in landgebruik (LU). 
 
 Deze dataset bevat getallen kleiner dan 1000. Wil dit zeggen dat in deze gevallen er 0 moet voorkomen om aan 4 cijfers te geraken? In dit geval zou "10" "0010" worden. 
 

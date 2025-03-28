@@ -1,6 +1,6 @@
 # Accuracy with strata
 
-```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE}
+```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE, warning = FALSE}
 
 library(tidyverse)
 library(terra)
@@ -47,7 +47,8 @@ source("./scripts/nca_functions.R")
 
 ## User and producers accurcay using hand coded functions based on Olofsson et al
 
-De functie confusion_matrix() berekent de map-relevante versie van de foutmatrix. Map-relevant betekent dat elke p_ij gewogen wordt op basis van de oppervlakteverhouding voor elk stratum (kaartklasse). Dit verschilt van de standaard caret::confusionMatrix, die werd gebruikt in de functie calculate_accuracy(). Zie ook https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html.
+De functie confusion_matrix() berekent de map-relevante versie van de foutmatrix. Map-relevant betekent dat elke p_ij gewogen wordt op basis van de oppervlakteverhouding voor elk stratum (kaartklasse). Dit verschilt van de standaard caret::confusionMatrix, die werd gebruikt in de functie calculate_accuracy(). Zie ook https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html. De resultaten zijn terug te vinden in @tbl-accu_own_funct. 
+
 ```{r res1}
 
 res1 <- calculate_accuracy(mapdata = test_clustering$prediction_change_frequency,
@@ -96,7 +97,7 @@ tempdata <- flextable(ua_pa_df %>%
 
 ```{r tbl_acc_own_funct}
 #| label: tbl-accu_own_funct
-#| tbl-cap: User and producer accuracy based on own formules based on Olofsson et al.. De overall accuracy is {{round(est, 3)}} met een variantie van {{round(var, 2)}}.
+#| tbl-cap: !expr 'paste("UA en PA berekend met eigen formules gebaseerd op Olofsson et al.. De OA bedraagt ", round(est, 3) , " en heeft een variant van", round(var, 2),".")'
 
 tempdata %>% set_table_properties(layout = "fixed")
 
@@ -111,6 +112,8 @@ Het MAPAC-pakket (Multiscale Analysis of Pattern and Change) is een R-pakket ont
 De gebruikt formules in dit package maken ook gebruik van de formules gedefinieerd door Olofsson et al. 
 
 De functie mapac::aa_card  wordt gebruikt voor het berekenen van de Area Adjusted Classification Accuracy (AA-Card). Deze maat is een aangepast beoordelingscriterium voor de nauwkeurigheid van een landgebruikscategorie, waarbij de oppervlakten van verschillende landgebruikstypes in overweging worden genomen.
+
+De resultaten zijn terug te vinden in @tbl-accu_own_mapac
 
 Er werden geen significante verschillen gedetecteerd tussen de aa_card functie en de handgeschreven functies. 
 
@@ -159,7 +162,7 @@ tempdata <- flextable(tempdata %>% mutate(across(
 
 ```{r tbl_acc_own_mapac}
 #| label: tbl-accu_own_mapac
-#| tbl-cap: User and producer accuracy based on own formules based on the MAPAC package. De overall accuracy is {{round(est, 3)}} met een variantie van {{round(var, 3)}}.
+#| tbl-cap: !expr 'paste("UA en PA berekend met MAPAC package. De OA bedraagt ", round(est, 3) , " en heeft een variant van", round(var, 2),".")'
 
 tempdata %>% set_table_properties(layout = "fixed")
 ```
@@ -190,8 +193,10 @@ De volgende stappen werden uitgevoerd:
 - de Inverse Probability Sampling (IPS) werd bepaald per clustering niveau door zijn frequentie te delen door zijn oppervlakte. De inverse hiervan wordt beschouwd als een gewicht voor de sampling units. 
 - Aan elke observatie werd een bepaalde naam gegeven (ids)
 
+De resultaten werden geplot in @fig-UA_PA_regen.
 
-```{r setting_up_regenesees}
+
+```{r setting_up_regenesees, include = FALSE}
 
 # estimate areas using ReGenesees
 #################################
@@ -375,8 +380,13 @@ cal_oa <- ReGenesees::svystatTM(
   estimator = "Mean",
   conf.int = TRUE,
   deff = TRUE)
-waldo::compare(aa$accuracy[1], cal_oa$Mean, tolerance = 1e-10)
-waldo::compare(aa$accuracy[2], cal_oa$SE, tolerance = 1e-5)
+
+est <- round(100*cal_oa$Mean, 3)
+lower <- round(100*cal_oa$`CI.l(95%)`,3)
+upper <- round(100*cal_oa$`CI.u(95%)`,3)
+
+# waldo::compare(aa$accuracy[1], cal_oa$Mean, tolerance = 1e-10)
+# waldo::compare(aa$accuracy[2], cal_oa$SE, tolerance = 1e-5)
 
 # UA: YES
 # (which need be estimated by row of contingency table which means by "map")
@@ -387,11 +397,12 @@ cal_ua <- ReGenesees::svystatTM(
   estimator = "Mean",
   conf.int = TRUE,
   deff = TRUE)
-waldo::compare(aa$stats$ua, cal_ua$Mean.oa, tolerance = 1e-10)
-waldo::compare(aa$stats$ua_se, cal_ua$SE.Mean.oa, tolerance = 1e-2) # more conservative
-hist(aa$stats$ua_se -  cal_ua$SE.Mean.oa)
-plot(aa$stats$ua_se, cal_ua$SE.Mean.oa)
-abline(0, 1)
+
+# waldo::compare(aa$stats$ua, cal_ua$Mean.oa, tolerance = 1e-10)
+# waldo::compare(aa$stats$ua_se, cal_ua$SE.Mean.oa, tolerance = 1e-2) # more conservative
+# hist(aa$stats$ua_se -  cal_ua$SE.Mean.oa)
+# plot(aa$stats$ua_se, cal_ua$SE.Mean.oa)
+# abline(0, 1)
 
 # PA
 cal_pa <- ReGenesees::svystatTM(
@@ -401,8 +412,8 @@ cal_pa <- ReGenesees::svystatTM(
   estimator = "Mean",
   conf.int = TRUE,
   deff = TRUE)
-waldo::compare(aa$stats$pa, cal_pa$Mean.oa, tolerance = 1e-10)
-waldo::compare(aa$stats$pa_se, cal_pa$SE.Mean.oa, tolerance = 1e-2)
+# waldo::compare(aa$stats$pa, cal_pa$Mean.oa, tolerance = 1e-10)
+# waldo::compare(aa$stats$pa_se, cal_pa$SE.Mean.oa, tolerance = 1e-2)
 
 # hist(aa$stats$pa_se -  cal_pa$SE.Mean.oa)
 # plot(aa$stats$pa_se, cal_pa$SE.Mean.oa)
@@ -411,8 +422,9 @@ waldo::compare(aa$stats$pa_se, cal_pa$SE.Mean.oa, tolerance = 1e-2)
 ```
 
 ```{r}
-#| label: fig-UA_PA
-#| fig-cap: "UA and PA based on the Regenesees package."
+#| label: fig-UA_PA_regen
+#| fig-cap: !expr 'paste("UA en PA berekend met Regenesees package. De OA bedraagt ", round(est, 3) , " met een 95% CI van [", lower, ";", upper, "]." )'
+
 
 areas_df %>%
   inner_join(
@@ -440,10 +452,10 @@ areas_df %>%
       x = class,
       y = area_est_ha,
       ymin = area_low_ha,
-      ymax = area_high_ha,
-      colour = area_low_ha < 0
+      ymax = area_high_ha
     )
   ) +
+  ylab(expression(paste("estimated area in ", km^{2}))) + 
   scale_y_log10() +
   coord_flip() 
 # +
