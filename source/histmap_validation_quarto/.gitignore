@@ -10,7 +10,6 @@
 *.xls*
 *_files
 *.tmp
-*.css
 .DS_Store
 .RData
 .Renviron
