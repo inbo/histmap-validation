@@ -11,6 +11,9 @@
 *_files
 *.tmp
 *.css
+*.tex
+*.json
+*.cff
 .DS_Store
 .RData
 .Renviron

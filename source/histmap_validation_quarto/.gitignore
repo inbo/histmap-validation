@@ -9,6 +9,7 @@
 *.shx
 *.xls*
 *_files
+/_extensions
 *.tmp
 .DS_Store
 .RData

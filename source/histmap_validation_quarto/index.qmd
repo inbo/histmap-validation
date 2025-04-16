@@ -1,0 +1,4 @@
+{{< colophon >}}
+# Preface {.unnumbered}
+
+We hebben een 10m x 10m grid met landgebruik (9 klassen) op 4 tijdstippen tussen 1774 en 2022. Er is een validatie van de rasterbeelden gemaakt obv een random gegenereerde puntenlaag. Bovendien is voor die validatiepunten ook gekeken naar het landgebruik op tussenliggende kaarten, waarop het landgebruik niet gedetecteerd is. De combinatie van 9 klassen op 4 (of meer) tijdstippen geeft zeer veel info. Het lijkt ons aangewezen om een procedure te ontwikkelen om zoveel mogelijk info te behouden maar toch de fout (detectiefout + LU change tussen de tijdstippen) te beperken. Dus wellicht door klassen te clusteren tot op het optimale niveau.
