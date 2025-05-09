@@ -8,7 +8,7 @@ project:
     - "*.qmd"
     - "!LICENSE.md" #ignore LICENSE.md
     - "!README.md" #ignore README.md
-  output-dir: output
+  output-dir: ../../output
 
 execute:
   echo: false
