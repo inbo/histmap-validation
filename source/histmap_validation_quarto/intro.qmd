@@ -24,18 +24,19 @@ git_root <- rprojroot::find_root(rprojroot::is_git_root)
 source(file.path(git_root, "source/scripts/nca_functions.R"))
 
 data_folder <-  file.path(git_root, "data")
+script_folder <-  file.path(git_root, "scripts")
 
 
-data <- read.csv(paste0(data_folder, "/legende_attribuuttabel.xlsx - validatiepunten_timeseries.csv"), 
+data <- read.csv(file.path(data_folder, "legende_attribuuttabel.xlsx - validatiepunten_timeseries.csv"), 
                         header = TRUE, encoding = "UTF-8")
 
-data_LU <- read.csv(paste0(data_folder, "/raster_report_LUC.xlsx - report land use change categori.csv"), 
+data_LU <- read.csv(file.path(data_folder, "raster_report_LUC.xlsx - report land use change categori.csv"), 
                         header = TRUE, encoding = "UTF-8")
 
 # Functions 
 
-source("./scripts/clustering_functions.R")
-source("./scripts/nca_functions.R")
+source(file.path(git_root, "source/scripts/clustering_functions.R"))
+
 
 
 ```

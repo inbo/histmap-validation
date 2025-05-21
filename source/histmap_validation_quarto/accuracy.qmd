@@ -26,21 +26,20 @@ data_folder <-  find_root_file("data",
                              criterion = has_file(
                                "histmap_validation_quarto.Rproj"))
 
-data <- readRDS(paste0(data_folder, "/cleaned_data.RDS"))
+data <- readRDS(file.path(data_folder, "cleaned_data.RDS"))
 
-data_LU <- read.csv(paste0(data_folder, "/raster_report_LUC.xlsx - report land use change categori.csv"),
+data_LU <- read.csv(file.path(data_folder, "raster_report_LUC.xlsx - report land use change categori.csv"),
                         header = TRUE, encoding = "UTF-8")
 
 
-test_clustering <- readRDS(paste0(data_folder, 
-                                   "/output_clustering.RDS"))
-data_LU_area_clus <- readRDS(paste0(data_folder, 
-                                   "/areas_LU_clustered.RDS"))
+test_clustering <- readRDS(file.path(data_folder, 
+                                   "output_clustering.RDS"))
+data_LU_area_clus <- readRDS(file.path(data_folder, 
+                                   "areas_LU_clustered.RDS"))
 
 # Functions 
 
-source("./scripts/clustering_functions.R")
-source("./scripts/nca_functions.R")
+source(file.path(git_root, "source/scripts/clustering_functions.R"))
 
 
 ```
@@ -111,7 +110,7 @@ Het MAPAC-pakket (Multiscale Analysis of Pattern and Change) is een R-pakket ont
 
 De gebruikt formules in dit package maken ook gebruik van de formules gedefinieerd door Olofsson et al. 
 
-De functie mapac::aa_card  wordt gebruikt voor het berekenen van de Area Adjusted Classification Accuracy (AA-Card). Deze maat is een aangepast beoordelingscriterium voor de nauwkeurigheid van een landgebruikscategorie, waarbij de oppervlakten van verschillende landgebruikstypes in overweging worden genomen.
+De functie `mapac::aa_card()`  wordt gebruikt voor het berekenen van de Area Adjusted Classification Accuracy (AA-Card). Deze maat is een aangepast beoordelingscriterium voor de nauwkeurigheid van een landgebruikscategorie, waarbij de oppervlakten van verschillende landgebruikstypes in overweging worden genomen.
 
 De resultaten zijn terug te vinden in @tbl-accu_own_mapac
 

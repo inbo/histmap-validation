@@ -26,15 +26,14 @@ data_folder <-  find_root_file("data",
                              criterion = has_file(
                                "histmap_validation_quarto.Rproj"))
 
-data <- readRDS(paste0(data_folder, "/cleaned_data.RDS"))
+data <- readRDS(file.path(data_folder, "cleaned_data.RDS"))
 
-data_LU <- read.csv(paste0(data_folder, "/raster_report_LUC.xlsx - report land use change categori.csv"),
+data_LU <- read.csv(file.path(data_folder, "raster_report_LUC.xlsx - report land use change categori.csv"),
                         header = TRUE, encoding = "UTF-8")
 
 # Functions 
 
-source("./scripts/clustering_functions.R")
-source("./scripts/nca_functions.R")
+source(file.path(git_root, "source/scripts/clustering_functions.R"))
 
 
 ```

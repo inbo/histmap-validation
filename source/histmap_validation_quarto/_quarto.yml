@@ -40,14 +40,14 @@ flandersqmd:
         given: Hans
         family: Van Calster
       email: hans.vancalster@inbo.be
-      corresponding: true
+      corresponding: FALSE
       orcid: 0000-0001-8535-8426
       affiliation:
         - Government of Flanders
     - name:
         given: Luc
         family: De Keersmaeker
-      email: third.author@vlaanderen.be
+      email: luc.dekeersmaeker@inbo.be
       orcid: 0000-0001-9709-512X
       affiliation:
         - Government of Flanders
@@ -68,7 +68,7 @@ flandersqmd:
   depotnr: optional depot number
   doi: 10.5281/zenodo.842223
   watermark:
-  public_report: true
+  public_report: FALSE
   colophon: true
   client:
     - INBO Brussel
