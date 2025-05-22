@@ -63,7 +63,7 @@ mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2)
 output:
 
 ```{r echo = FALSE}
-mask_follow_up(c("1123", "2245", "3333"), clustering_position = 2)
+mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2)
 ```
 
 ## mask_follow_up_intensity
@@ -88,7 +88,7 @@ mask_follow_up_intensity(c("11123", "22345", "33333"), clustering_position = 2)
 output:
 
 ```{r echo = FALSE}
-mask_follow_up_intensity(c("1123", "2245", "3333"), clustering_position = 2)
+mask_follow_up_intensity(c("11123", "22345", "33333"), clustering_position = 2)
 ```
 
 ## make_bin_change
