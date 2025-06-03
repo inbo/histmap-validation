@@ -55,6 +55,41 @@ res1 <- calculate_accuracy(mapdata = test_clustering$prediction_change_frequency
 
 ```
 
+
+```{r check_clustering_and_area, eval = FALSE}
+
+assert_that(length(unique(test_clustering$prediction_mask_follow_up)) == 
+              length(unique(rownames(data_LU_area_clus))), 
+            msg = "Not all clustering levels are present in both the clustered data and 
+            area data.")
+
+difference <- c(setdiff(levels(test_clustering$reference_mask_follow_up), 
+                      rownames(data_LU_area_clus)), 
+                setdiff(rownames(data_LU_area_clus), 
+                        levels(test_clustering$reference_mask_follow_up)))
+
+setdiff1 <- setdiff(levels(test_clustering$reference_mask_follow_up), 
+                      rownames(data_LU_area_clus))
+
+add1 <- data.frame(area_ha = 0,
+                   area_m2 = 0) 
+
+rownames(add1) <- setdiff1
+
+data_LU_area_clus <- rbind(data_LU_area_clus, add1)
+
+
+all_levels <- lubridate::union(levels(test_clustering$reference_mask_follow_up), 
+                    rownames(data_LU_area_clus))
+
+data_LU_area_clus$area_ha <- ifelse(all_levels %in% rownames(data_LU_area_clus), 
+                                    data_LU_area_clus$area_ha, 
+                                    0)
+
+
+```
+
+
 ```{r confusion_matrix}
 
 ## Be sure that maparea and ma are ordered in the same manner
@@ -141,7 +176,7 @@ aa <- mapac::aa_card(
   data = test_clustering[, c("reference_change_frequency", 
                              "prediction_change_frequency")],
   w = data_LU_area_clus$area_ha/sum(data_LU_area_clus$area_ha),
-  strata = levels(factor(test_clustering$reference_change_frequency)),
+  strata = levels(factor(test_clustering$reference_mask_follow_up)),
   area = sum(data_LU_area_clus$area_ha),
   confusion_matrix = FALSE,
   olofsson = TRUE
