@@ -16,6 +16,8 @@ devtools::install_github("gbganalyst/forstringr")
 library(forstringr)
 library(flextable)
 
+conflicted::conflicts_prefer(dplyr::filter)
+
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
                   comment = "", error = FALSE)
 
@@ -48,44 +50,63 @@ source(file.path(git_root, "source/scripts/clustering_functions.R"))
 
 De functie confusion_matrix() berekent de map-relevante versie van de foutmatrix. Map-relevant betekent dat elke p_ij gewogen wordt op basis van de oppervlakteverhouding voor elk stratum (kaartklasse). Dit verschilt van de standaard caret::confusionMatrix, die werd gebruikt in de functie calculate_accuracy(). Zie ook https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html. De resultaten zijn terug te vinden in @tbl-accu_own_funct. 
 
-```{r res1}
 
-res1 <- calculate_accuracy(mapdata = test_clustering$prediction_change_frequency,
-                           refdata = test_clustering$reference_change_frequency)
+
+```{r check_clustering_and_area, eval = TRUE, warning = TRUE}
+
+check_class_level_match(test_clustering, data_LU_area_clus, 
+                        reference_col = "reference_mask_follow_up", 
+                        prediction_col = "prediction_mask_follow_up")
+
+
+rare_preds <- get_rare_levels(test_clustering, 
+                              prediction_mask_follow_up)
+rare_refs  <- get_rare_levels(test_clustering,
+                              reference_mask_follow_up)
+
+
+rare_classes <- unique(c(rare_preds, rare_refs))
+
+if(length(rare_classes) > 0){
+  warning(paste("De clustering levels", 
+                knitr::combine_words(rare_classes, and = " en "), 
+                "tellen slechts 1 observatie."))
+}
+
+test_clustering <- test_clustering %>% 
+  filter(!prediction_mask_follow_up %in% rare_classes, 
+         !reference_mask_follow_up %in% rare_classes) %>% 
+  droplevels()
+
+data_LU_area_clus <- data_LU_area_clus[!rownames(data_LU_area_clus) %in%
+                                         rare_classes,]
+
 
 ```
 
 
-```{r check_clustering_and_area, eval = FALSE}
+```{r}
+intersect_levels <- lubridate::intersect(
+  lubridate::intersect(levels(
+    test_clustering$reference_mask_follow_up %>% droplevels()),
+    levels(test_clustering$prediction_mask_follow_up
+           %>% droplevels())),
+  rownames(data_LU_area_clus))
 
-assert_that(length(unique(test_clustering$prediction_mask_follow_up)) == 
-              length(unique(rownames(data_LU_area_clus))), 
-            msg = "Not all clustering levels are present in both the clustered data and 
-            area data.")
+test_clustering <- test_clustering %>% 
+  dplyr::filter(reference_mask_follow_up %in% intersect_levels, 
+                prediction_mask_follow_up %in% intersect_levels) %>% 
+  droplevels()
 
-difference <- c(setdiff(levels(test_clustering$reference_mask_follow_up), 
-                      rownames(data_LU_area_clus)), 
-                setdiff(rownames(data_LU_area_clus), 
-                        levels(test_clustering$reference_mask_follow_up)))
+data_LU_area_clus <- data_LU_area_clus[rownames(data_LU_area_clus) %in% 
+                                         intersect_levels, ]
 
-setdiff1 <- setdiff(levels(test_clustering$reference_mask_follow_up), 
-                      rownames(data_LU_area_clus))
+```
 
-add1 <- data.frame(area_ha = 0,
-                   area_m2 = 0) 
+```{r res1}
 
-rownames(add1) <- setdiff1
-
-data_LU_area_clus <- rbind(data_LU_area_clus, add1)
-
-
-all_levels <- lubridate::union(levels(test_clustering$reference_mask_follow_up), 
-                    rownames(data_LU_area_clus))
-
-data_LU_area_clus$area_ha <- ifelse(all_levels %in% rownames(data_LU_area_clus), 
-                                    data_LU_area_clus$area_ha, 
-                                    0)
-
+res1 <- calculate_accuracy(mapdata = test_clustering$prediction_mask_follow_up,
+                           refdata = test_clustering$reference_mask_follow_up)
 
 ```
 
@@ -119,7 +140,7 @@ var <- overall_acc$oa_var
 ua_pa_df <- calc_ua_pa(
   maparea = data_LU_area_clus$area_ha,
   ma = as.data.frame.matrix(res1$table)
-) 
+)
 
 tempdata <- flextable(ua_pa_df %>% 
                         mutate(across(
@@ -173,8 +194,8 @@ if (!c("ReGenesees") %in% installed.packages()) {
 
 # using MPAC package
 aa <- mapac::aa_card(
-  data = test_clustering[, c("reference_change_frequency", 
-                             "prediction_change_frequency")],
+  data = test_clustering[, c("reference_mask_follow_up", 
+                             "prediction_mask_follow_up")],
   w = data_LU_area_clus$area_ha/sum(data_LU_area_clus$area_ha),
   strata = levels(factor(test_clustering$reference_mask_follow_up)),
   area = sum(data_LU_area_clus$area_ha),
@@ -235,8 +256,8 @@ De resultaten werden geplot in @fig-UA_PA_regen.
 # estimate areas using ReGenesees
 #################################
 observed_changes_RD <- data.frame(
-  map = as.factor(test_clustering$prediction_change_frequency),
-  ref = as.factor(test_clustering$reference_change_frequency))   %>%
+  map = as.factor(test_clustering$prediction_mask_follow_up),
+  ref = as.factor(test_clustering$reference_mask_follow_up))   %>%
   mutate(
     map = factor(map, levels = sort(unique(c(levels(map), levels(ref))))),
     map = factor(map, levels = levels(map))

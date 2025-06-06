@@ -374,8 +374,8 @@ data_LU <- data_LU %>% dplyr::filter(value >= 1000) %>%
   mutate(value = as.character(value))
 
 data_LU_clus <- clustering_area(data_LU$value, 
-                                clustering_method = c("change_frequency", 
-                                                      "presence"))
+                                clustering_method = c("mask_follow_up", 
+                                                      "mask_follow_up_intensity"))
 
 data_LU_merge <- merge(data_LU, data_LU_clus, 
                        by.x = "value", by.y = "reference") %>% 
@@ -383,10 +383,11 @@ data_LU_merge <- merge(data_LU, data_LU_clus,
 
 ## get area per cluster 
 
-data_LU_area_clus <- data_LU_merge %>% group_by(reference_change_frequency) %>% 
+data_LU_area_clus <- data_LU_merge %>% 
+  group_by(reference_mask_follow_up) %>% 
   summarise(area_ha = sum(ha, na.rm = TRUE), 
             area_m2 = sum(m2, na.rm = TRUE)) %>% 
-  column_to_rownames(var = "reference_change_frequency")
+  column_to_rownames(var = "reference_mask_follow_up")
 
 ```
 

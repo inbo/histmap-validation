@@ -610,3 +610,51 @@ clustering_area <- function(variable,
 
 }
 
+get_rare_levels <- function(df, column) {
+  df %>%
+    count({{ column }}) %>%
+    filter(n <= 1) %>%
+    dplyr::pull({{ column }}) %>%
+    as.character()
+}
+
+
+check_class_level_match <- function(clustering_data,
+                                    area_data,
+                                    reference_col = "reference_mask_follow_up_intensity",
+                                    prediction_col = "prediction_mask_follow_up_intensity") {
+  # Verzamel unieke levels uit clustering (reference + prediction)
+  clustering_levels <- unique(c(
+    levels(factor(clustering_data[[reference_col]])),
+    levels(factor(clustering_data[[prediction_col]]))
+  ))
+
+  # Levels uit area-data (we nemen aan dat die in de rownames staan)
+  area_levels <- rownames(area_data)
+
+  # Check op mismatch
+  if (!setequal(clustering_levels, area_levels)) {
+
+    # Zoek verschillen
+    missing_in_area  <- setdiff(clustering_levels, area_levels)
+    missing_in_clust <- setdiff(area_levels, clustering_levels)
+    difference       <- unique(c(missing_in_area, missing_in_clust))
+
+    warning(
+      paste0(
+        "Niet alle classificatielevels komen overeen tussen de clusteringdata ",
+        "en de area-data. Dit kan de inferentie naar Vlaanderen beïnvloeden. ",
+        "De volgende levels ontbreken in één van beide datasets: ",
+        knitr::combine_words(difference, and = " en "),
+        ". Deze levels worden genegeerd bij de verdere berekingen"
+      )
+    )
+
+    return(invisible(difference))
+  } else {
+    message("Alle classificatielevels komen overeen tussen clustering en area-data.")
+    return(invisible(NULL))
+  }
+}
+
+`%ni%` <- Negate(`%in%`)
