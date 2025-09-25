@@ -25,7 +25,7 @@ format:
 flandersqmd:
   entity: INBO
   level: 2
-  title:  Kartering historische landgebruiksveranderingen
+  title:  Kartering historische landgebruiksveranderingen (mask_follow_up)
   subtitle:
   author:
     - name:
@@ -87,7 +87,7 @@ flandersqmd:
 
 
 book:
-  title: "Kartering historische landgebruiksveranderingen"
+  title: "Kartering historische landgebruiksveranderingen (mask_follow_up)"
   author: "Robrecht Dockx"
   date: "`r format(Sys.time(), '%d %B, %Y')`"
   chapters:
