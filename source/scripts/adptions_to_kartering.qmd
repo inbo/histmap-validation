@@ -279,6 +279,7 @@ output:
 ```{r echo = FALSE}
 mask_follow_up_intensity(c("11123", "22345", "33333"), clustering_position = 2)
 ```
+
 (@) make_bin_change
 
 **Doel**
