@@ -96,7 +96,7 @@ past_follow_up <- function(variable,
 
 
   sapply(variable, past_follow_up_helper,
-    position = clustering_position,
+    position = position,
     LU = LU, years = years
   )
 }

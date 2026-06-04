@@ -33,7 +33,7 @@ data_LU <- read.csv(file.path(data_folder, "raster_report_LUC.xlsx - report land
 
 # Functions 
 
-source(file.path(git_root, "source/scripts/clustering_functions.R"))
+source(file.path(git_root, "source/histmap_validation_quarto/scripts/clustering_functions.R"))
 
 
 ```
@@ -55,15 +55,67 @@ De functie mask_follow_up clustert een reeks landgebruikscodes (LU-codes) op bas
 
 **Voorbeeld**
 
-Input:
+```{r mask_follow_up, eval = FALSE, include = TRUE}
+mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2, reverse = FALSE)
 
-```{r echo = TRUE, eval = FALSE}
-mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2)
+mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2, reverse = TRUE)
 ```
+
 output:
 
 ```{r echo = FALSE}
 mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2)
+
+mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2, reverse = TRUE)
+```
+
+## past_follow_up
+
+**Doel**
+
+De functie past_follow_up clustert een reeks landgebruikscodes (LU-codes) op basis van een opgegeven clusteringpositie. Dit betekent dat alle voorgaande karakters voor de clusteringpositie worden gecontroleerd en vervangen door "X" zodra een verschil wordt gedetecteerd.
+
+**Parameters**
+
+- variable (character vector): Een vector met landgebruikscodes, elk bestaande uit een reeks karakters.
+- clustering_position (integer): De index van het karakter waarop clustering wordt gebaseerd. Dit is de startpositie van de clustering.
+- LU (character): De landgebruikscode waarnaar er gezocht wordt op de clusteringspositie. 
+- years (numeric vector): Een vector met de geobserveerde jaren (standaard c(2022, 1969, 1879, 1774))
+
+ Waarschuwingen worden gegeven wanneer:
+ - er een andere codering voor de LU gegeven is en
+ - wanneer het LU niet voorkomt in het opgegeven jaar. 
+ 
+\newpage
+
+**Voorbeeld**
+
+Input:
+
+```{r past_follow_up, eval = FALSE, include = TRUE, echo = TRUE, warning = TRUE}
+
+past_follow_up(c("21232", "45233", "13333"),
+  position  = 4,
+  LU = "3"
+)
+
+past_follow_up(c("11123", "22345", "33333"),
+  position = 2,
+  LU = "2"
+)
+```
+output:
+
+```{r echo = FALSE, warning = TRUE}
+past_follow_up(c("21232", "45233", "13333"),
+  position = 4,
+  LU = "3"
+)
+
+past_follow_up(c("11123", "22345", "33333"),
+  position = 2,
+  LU = "2"
+)
 ```
 
 ## mask_follow_up_intensity
@@ -238,6 +290,7 @@ Om het gebruik van bovenstaande functies te vergemakkelijken werd de clustering-
 - clustering_year: Het jaar waarin clustering wordt uitgevoerd.
 - clustering_method: De clusteringmethode die wordt toegepast. Mogelijke waarden:
         "mask_follow_up"
+        "post_follow_up"
         "mask_follow_up_intensity"
         "make_bin_change"
         "change_frequency"
@@ -297,12 +350,16 @@ De clustering werd toegepast op de gegeven dataset. De functie 'change_frequency
 
 ```{r calc_res1}
 
-test_clustering <- clustering(clustering_method = c("mask_follow_up",
-                                           "mask_follow_up_intensity",
-                                           "make_bin_change",
-                                           "change_frequency",
-                                           "transition",
-                                           "presence"))
+test_clustering <- clustering(clustering_method = c(
+  "mask_follow_up",
+  "mask_follow_up_intensity",
+  "make_bin_change",
+  "change_frequency",
+  "transition",
+  "presence", 
+  "past_follow_up"
+), 
+clustering_year = 2022)
 
 res1 <- calculate_accuracy(mapdata = test_clustering$prediction_change_frequency,
                            refdata = test_clustering$reference_change_frequency)
