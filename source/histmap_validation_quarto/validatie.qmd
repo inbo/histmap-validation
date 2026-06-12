@@ -1,0 +1,99 @@
+# Validation
+
+
+```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE, warning = FALSE}
+
+library(tidyverse)
+library(terra)
+library(git2rdata)
+library(plotly)
+library(sf)
+library(INBOtheme)
+library(assertthat)
+library(caret)
+library(rprojroot)
+library(devtools)
+devtools::install_github("gbganalyst/forstringr")
+library(forstringr)
+library(flextable)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                  comment = "", error = FALSE)
+
+git_root <- rprojroot::find_root(rprojroot::is_git_root)
+source(file.path(git_root, "source/scripts/nca_functions.R"))
+
+data_folder <-  file.path(git_root, "data")
+
+script_folder <-  file.path(git_root, "scripts")
+
+
+data <- read.csv(file.path(data_folder, 
+                           "validatiepunten LU continuity.csv"),
+                 header = TRUE,
+                 encoding = "UTF-8")
+
+data_LU <- read.csv(file.path(data_folder, "raster_report_LUC.xlsx - report land use change categori.csv"), 
+                        header = TRUE, encoding = "UTF-8")
+
+# Functions 
+
+source(file.path(git_root, "source/histmap_validation_quarto/scripts/clustering_functions.R"))
+
+```
+
+Gedurende de analyses zal er gebruik gemaakt worden van twee datasets: 
+
+- Een [dataset](https://docs.google.com/spreadsheets/d/1Qk7hgajuzkvmWGGcqCOz3KUxLxcIr0KE/edit?gid=1pFvL-Q9G6eL9vjfKZkU6SpvM1UZkUc0v) met de geobserveerde waarde en referentiewaarde. 
+
+Deze dataset bevat `r dim(data)[1]` observaties en `r dim(data)[2]` variabelen en zal gebruikt worden om een atnwoord te geven op de volgende vragen: 
+
+- Wat is het effect van postprocessing?
+
+Resulteert de 3 x 3 majority filter, waarbij smalle lijnvormige structuren op de digitalisaties (waterlopen en wegen) gedeeltelijk weggefilterd worden, in een beter resultaat? Hiervoor moeten de validatiepunten respectievelijk voor de velden LU_8T_VAL en LU_8B_VAL worden omgezet naar een code met 4 cijfers (LU op 3 historische tijsdtippen aangevuld met LU in 2022) en vergeleken worden met LU_4T_MAP en LU_4B_MAP. 
+
+- Welke informatie verliezen  door gebruik te maken door slechts 3 historische kaarten te digitaliseren en te gebruiken in de overlays LU_2022_1969_1873_1774.tif en LU_2022_1969_1873_1774_M3.tif, in vergelijking met de 8 die beschikbaar zijn? Er kunnen LU omzettingen gebeurd zijn, die niet gedetecteerd werden met de 3 historische kaarten die gedigitaliseerd werden.
+
+## De dataset
+
+```{r clean_data}
+
+data <- data %>% 
+  rename_with(~ str_replace(.x, "X", ""), 2:17) %>% 
+  rename_with(~ paste0("year_", .x), 2:17) %>% 
+  mutate(across(-c(fid, X, Y), 
+                as.character))
+
+data$check_B <- paste0(
+  data$year_1774_B, 
+  data$year_1850_B, 
+  data$year_1873_B, 
+  data$year_1904_B, 
+  data$year_1939_B, 
+  data$year_1969_B, 
+  data$year_1981_B, 
+  data$year_1989_B
+)
+
+data$check_T <- paste0(
+  data$year_1774_T, 
+  data$year_1850_T, 
+  data$year_1873_T, 
+  data$year_1904_T, 
+  data$year_1939_T, 
+  data$year_1969_T, 
+  data$year_1981_T, 
+  data$year_1989_T
+)
+
+
+```
+
+```{r checks_data}
+
+all(nchar(data$LU_8B_VAL) == 8)
+which(nchar(data$LU_8B_VAL) != 8)
+
+```
+
+
