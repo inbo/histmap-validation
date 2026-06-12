@@ -52,28 +52,29 @@ De functie mask_follow_up clustert een reeks landgebruikscodes (LU-codes) op bas
 
 - variable (character vector): Een vector met landgebruikscodes, elk bestaande uit een reeks karakters.
 - clustering_position (integer): De index van het karakter waarop clustering wordt gebaseerd. Dit is de startpositie van de clustering.
+- reverse (boolean): De volgorde van de jaren wordt omgedraaid en er wordt gekeken naar hoe lang het gewenste LU aanwezig is. 
 
 **Voorbeeld**
 
-```{r mask_follow_up, eval = FALSE, include = TRUE}
-mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2, reverse = FALSE)
+```{r mask_follow_up, eval = FALSE, include = TRUE, echo = TRUE}
+mask_follow_up(c("1123", "2235", "3333"), clustering_position = 2)
 
-mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2, reverse = TRUE)
+mask_follow_up(c("1123", "2235", "3333"), clustering_position = 1, reverse = TRUE)
 ```
 
 output:
 
 ```{r echo = FALSE}
-mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2)
+mask_follow_up(c("1123", "2235", "3333"), clustering_position = 2)
 
-mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2, reverse = TRUE)
+mask_follow_up(c("1123", "2235", "3333"), clustering_position = 1, reverse = TRUE)
 ```
 
 ## past_follow_up
 
 **Doel**
 
-De functie past_follow_up clustert een reeks landgebruikscodes (LU-codes) op basis van een opgegeven clusteringpositie. Dit betekent dat alle voorgaande karakters voor de clusteringpositie worden gecontroleerd en vervangen door "X" zodra een verschil wordt gedetecteerd.
+De functie past_follow_up clustert een reeks landgebruikscodes (LU-codes) op basis van een opgegeven clusteringpositie. Dit betekent dat alle voorgaande karakters voor de clusteringpositie worden gecontroleerd en vervangen door "X" zodra een verandering in landgebruik wordt gedetecteerd.
 
 **Parameters**
 
@@ -83,6 +84,7 @@ De functie past_follow_up clustert een reeks landgebruikscodes (LU-codes) op bas
 - years (numeric vector): Een vector met de geobserveerde jaren (standaard c(2022, 1969, 1879, 1774))
 
  Waarschuwingen worden gegeven wanneer:
+ 
  - er een andere codering voor de LU gegeven is en
  - wanneer het LU niet voorkomt in het opgegeven jaar. 
  
@@ -94,12 +96,12 @@ Input:
 
 ```{r past_follow_up, eval = FALSE, include = TRUE, echo = TRUE, warning = TRUE}
 
-past_follow_up(c("21232", "45233", "13333"),
+past_follow_up(c("2123", "4323", "1333", "1355"),
   position  = 4,
   LU = "3"
 )
 
-past_follow_up(c("11123", "22345", "33333"),
+past_follow_up(c("1223", "2325", "3233", "5525"),
   position = 2,
   LU = "2"
 )
@@ -107,12 +109,12 @@ past_follow_up(c("11123", "22345", "33333"),
 output:
 
 ```{r echo = FALSE, warning = TRUE}
-past_follow_up(c("21232", "45233", "13333"),
-  position = 4,
+past_follow_up(c("2123", "4323", "1333", "1355"),
+  position  = 4,
   LU = "3"
 )
 
-past_follow_up(c("11123", "22345", "33333"),
+past_follow_up(c("1223", "2325", "3233", "5525"),
   position = 2,
   LU = "2"
 )
@@ -122,25 +124,27 @@ past_follow_up(c("11123", "22345", "33333"),
 
 **Doel**
 
-De functie mask_follow_up_intensity bouwt verder op mask_follow_up, maar voegt extra logica toe om de intensiteit van het landgebruik te bepalen. Dit wordt gedaan door te kijken of het landgebruik als intensief of extensief wordt geclassificeerd.
+De functie mask_follow_up_intensity bouwt verder op mask_follow_up, maar voegt extra logica toe om de intensiteit van het landgebruik te bepalen. Dit wordt gedaan door te kijken of het landgebruik als intensief (I) of extensief (E) wordt geclassificeerd.
 
 **Parameters**
 
 - variable (character vector): Een vector met landgebruikscodes.
 - LU-klassen (akker, bebouwing, ..., water) (integers, standaardwaarden 1 t/m 9): Codering voor verschillende typen landgebruik.
-    clustering_position (integer): De startpositie van de clustering.
+- clustering_position (integer): De startpositie van de clustering.
 
 **Voorbeeld**
 
 Input:
 
 ```{r echo = TRUE, eval = FALSE}
-mask_follow_up_intensity(c("11123", "22345", "33333"), clustering_position = 2)
+mask_follow_up_intensity(c("11123", "22345", "33333"), 
+                         LU = 2, clustering_position = 2)
 ```
 output:
 
 ```{r echo = FALSE}
-mask_follow_up_intensity(c("11123", "22345", "33333"), clustering_position = 2)
+mask_follow_up_intensity(c("11123", "22345", "33333"), LU = 2,
+                         clustering_position = 2)
 ```
 
 ## make_bin_change
@@ -278,7 +282,7 @@ transition_present(c("12345", "22345", "33445"), clustering_position = 1,
 
 ## Clustering
 
-Om het gebruik van bovenstaande functies te vergemakkelijken werd de clustering-functie gecreerd. Deze functie wordt gebruikt om landgebruiksklassen te analyseren en te groeperen op basis van verschillende clustering-methoden. De functie vergelijkt een voorspelde dataset (prediction) met een referentiedataset (reference) over een reeks jaren en past een geselecteerde clusteringmethode toe.
+Om het gebruik van bovenstaande functies te vergemakkelijken werd de clustering-functie gecreëerd. Deze functie wordt gebruikt om landgebruiksklassen te analyseren en te groeperen op basis van verschillende clustering-methoden. De functie vergelijkt een voorspelde dataset (prediction) met een referentiedataset (reference) over een reeks jaren en past een geselecteerde clusteringmethode toe.
 
 **Parameters**
 
@@ -345,7 +349,7 @@ print(resultaat)
 
 ## Voorbeeld 
 
-De clustering werd toegepast op de gegeven dataset. De functie 'change_frequency' werd gebruikt als clusteringsmethode. Na de clustering werd de overall accuracy (OA) de user accuracy (UA) en producer accuracy bepaald (PA) (@tbl-output_clustering) en geplot (@fig-UA_PA). Tijdens deze berekening werd er geen rekening gehouden met de oppervlakte verhouding van elk stratum. 
+De clustering werd toegepast op de gegeven dataset. De functie 'change_frequency' werd gebruikt als clusteringsmethode. Na de clustering werd met de functie calculate_accuracy de overall accuracy (OA) de user accuracy (UA) en producer accuracy bepaald (PA) (@tbl-output_clustering) en geplot (@fig-UA_PA). Tijdens deze berekening werd er geen rekening gehouden met de oppervlakte verhouding van elk stratum. 
 
 
 ```{r calc_res1}
@@ -361,8 +365,9 @@ test_clustering <- clustering(clustering_method = c(
 ), 
 clustering_year = 2022)
 
-res1 <- calculate_accuracy(mapdata = test_clustering$prediction_change_frequency,
-                           refdata = test_clustering$reference_change_frequency)
+res1 <- calculate_accuracy(
+  mapdata = test_clustering$prediction_change_frequency,
+  refdata = test_clustering$reference_change_frequency)
 
 OA <-  round(100 * unname(res1$overall["Accuracy"]), digits = 2)
 OA_LL <- round(100 * unname(res1$overall["AccuracyLower"]), digits = 2)
