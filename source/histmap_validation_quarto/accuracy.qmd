@@ -193,13 +193,23 @@ if (!c("ReGenesees") %in% installed.packages()) {
 ### check if areas are being used in the right strata cause for the functions the variables are not sorted
 
 # using MPAC package
+# aa <- mapac::aa_card(
+#   data = test_clustering[, c("reference_mask_follow_up", 
+#                              "prediction_mask_follow_up")],
+#   w = data_LU_area_clus$area_ha/sum(data_LU_area_clus$area_ha),
+#   strata = levels(factor(test_clustering$reference_mask_follow_up)),
+#   area = sum(data_LU_area_clus$area_ha),
+#   confusion_matrix = FALSE,
+#   olofsson = TRUE
+# )
+
 aa <- mapac::aa_card(
-  data = test_clustering[, c("reference_mask_follow_up", 
-                             "prediction_mask_follow_up")],
+  x = test_clustering$reference_mask_follow_up,
+  m = test_clustering$prediction_mask_follow_up,
   w = data_LU_area_clus$area_ha/sum(data_LU_area_clus$area_ha),
-  strata = levels(factor(test_clustering$reference_mask_follow_up)),
+  h = levels(factor(test_clustering$reference_mask_follow_up)),
   area = sum(data_LU_area_clus$area_ha),
-  confusion_matrix = FALSE,
+  # confusion_matrix = FALSE,
   olofsson = TRUE
 )
 
@@ -476,9 +486,10 @@ cal_pa <- ReGenesees::svystatTM(
 
 ```
 
-```{r}
+```{r fig.height = 9.5}
 #| label: fig-UA_PA_regen
 #| fig-cap: !expr 'paste("UA en PA berekend met Regenesees package. De OA bedraagt ", round(est, 3) , " met een 95% CI van [", lower, ";", upper, "]." )'
+
 
 
 areas_df %>%
