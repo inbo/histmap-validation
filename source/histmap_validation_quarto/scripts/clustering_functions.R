@@ -11,11 +11,11 @@ mask_follow_up <- function(variable,
                            reference_position,
                            reverse = FALSE,
                            ...) {
-  if (reverse) {
-    variable <- stringi::stri_reverse(variable)
+  if(reverse) {
+    variable <- variable
 
 
-    position <- unique(nchar(variable) - clustering_position + 1)
+    position <- clustering_position
   } else {
     position <- clustering_position
   }
@@ -24,7 +24,7 @@ mask_follow_up <- function(variable,
   variable_char <- as.character(variable)
 
 
-  if (reverse) {
+  if(reverse) {
     clustered <- sapply(variable_char, function(x) {
       first_LU <- substr(x, start = position, stop = position)
 
@@ -34,20 +34,18 @@ mask_follow_up <- function(variable,
 
       for (i in c((position + 1):length(chars))) {
         if (chars[i] == chars[position]) {
-          chars[i:length(chars)] <- "X"
-
-
-          break
+          chars[i] <- "X"
         }
       }
-
 
       stringi::stri_reverse(paste(chars, collapse = ""))
     })
 
 
+    message("The order of the years has been changed!")
     clustered %>% unname()
-  } else {
+
+  } else{
     clustered <- sapply(variable_char, function(x) {
       first_LU <- substr(x, start = position, stop = position)
 
@@ -56,9 +54,8 @@ mask_follow_up <- function(variable,
 
 
       for (i in c((position + 1):length(chars))) {
-        if (chars[i] == chars[position]) {
+        if(chars[i] != chars[position]) {
           chars[i:length(chars)] <- "X"
-
 
           break
         }
@@ -113,9 +110,12 @@ past_follow_up_helper <- function(x, position, LU,
 
     x <- x
   } else {
-    while (position > 0) {
+    while(position > 0) {
       if (str_sub(x, (position - 1), (position - 1)) != LU) {
-        substr(x, position - 1, position - 1) <- "x"
+        str_sub(x, start = 1, end = (position - 1)) <- paste0(
+          rep("x", times = (position - 1)),
+          collapse = "")
+        position <- 1
       }
 
 
@@ -624,7 +624,7 @@ transition_present <- function(variable,
 
 
       nr_LU_after_trans == nchar(LUs_after_trans)) {
-      return("Transitie 1 keer aanwezig en laatste LU van de blijft angehouden")
+      return("Transitie 1 keer aanwezig en laatste LU van de blijft aangehouden")
     } else if (x_contains_trans & count > 1 & nr_LU_after_trans == 0 &
 
 
