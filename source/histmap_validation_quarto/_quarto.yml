@@ -95,6 +95,7 @@ book:
     - intro.qmd
     - summary.qmd
     - accuracy.qmd
+    - validatie.qmd
     # - references.qmd
   downloads: pdf
   open-graph: true
