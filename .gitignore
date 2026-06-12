@@ -14,6 +14,8 @@
 *.tex
 *.json
 *.cff
+*.csv
+*.RDS
 .DS_Store
 .RData
 .Renviron
