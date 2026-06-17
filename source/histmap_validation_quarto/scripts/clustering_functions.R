@@ -11,34 +11,29 @@ mask_follow_up <- function(variable,
                            reference_position,
                            reverse = FALSE,
                            ...) {
-  if(reverse) {
-    variable <- variable
 
-
-    position <- clustering_position
-  } else {
-    position <- clustering_position
-  }
-
-
+  position <- clustering_position
   variable_char <- as.character(variable)
 
 
   if(reverse) {
     clustered <- sapply(variable_char, function(x) {
-      first_LU <- substr(x, start = position, stop = position)
+      position <- nchar(x)
+      last_LU <- substr(x, start = position, stop = position)
 
 
       chars <- strsplit(x, "")[[1]]
 
 
-      for (i in c((position + 1):length(chars))) {
-        if (chars[i] == chars[position]) {
-          chars[i] <- "X"
+      for (i in c((position - 1):1)) {
+        if (chars[i] != chars[position]) {
+          chars[(i:1)] <- "X"
+
+          break
         }
       }
 
-      stringi::stri_reverse(paste(chars, collapse = ""))
+      paste(chars, collapse = "")
     })
 
 
@@ -667,7 +662,8 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
                        akker = 1, bebouwing = 2, bos = 3,
                        grasland = 4, heide = 5, strand = 6,
                        moeras = 7, boomgaard = 8, water = 9,
-                       reference_year = 1774) {
+                       reference_year = 1774,
+                       reverse = FALSE) {
   ### check properties of the clustering method
 
 
@@ -765,12 +761,12 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
   )
 
 
-  assert_that(reference_year != clustering_year,
-    msg = "Clustering year and reference year are the same"
-  )
+  # assert_that(reference_year != clustering_year,
+  #   msg = "Clustering year and reference year are the same"
+  # )
 
 
-  assert_that(clustering_year > reference_year,
+  assert_that(clustering_year >= reference_year,
     msg = "Clustering year is prior to reference year"
   )
 
@@ -796,29 +792,21 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
 
   assert_that(
     all(nchar(as.character(prediction)) ==
-
-
-      nchar(as.character(prediction[1]))),
+          nchar(as.character(prediction[1]))),
     msg = "Some predictions do not have the same length"
   )
 
 
   assert_that(
     all(nchar(as.character(reference)) ==
-
-
-      nchar(as.character(reference[1]))),
+          nchar(as.character(reference[1]))),
     msg = "Some references do not have the same length"
   )
 
 
   assert_that(
     nchar(as.character(reference[1])) ==
-
-
       nchar(as.character(prediction[1])) &
-
-
       nchar(as.character(reference[1])) == length(years),
     msg = "The reference and prediction differ in length of characters"
   )
@@ -849,7 +837,7 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
   reference_position <- which(reference_year == years)[[1]]
 
 
-  assert_that(clustering_position < reference_position,
+  assert_that(clustering_position <= reference_position,
     msg = "Clustering year is prior to the reference year"
   )
 
@@ -863,26 +851,16 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
   for (method in clustering_method) {
     if (method == "mask_follow_up") {
       tempdata[[paste0("prediction_", method)]] <- mask_follow_up(prediction,
-        clustering_position =
-
-
-          clustering_position,
-        reference_position =
-
-
-          reference_position
+        clustering_position = clustering_position,
+        reference_position = reference_position,
+        reverse = reverse
       )
 
 
       tempdata[[paste0("reference_", method)]] <- mask_follow_up(reference,
-        clustering_position =
-
-
-          clustering_position,
-        reference_position =
-
-
-          reference_position
+        clustering_position = clustering_position,
+        reference_position = reference_position,
+        reverse = reverse
       )
 
 
@@ -1168,10 +1146,7 @@ clustering <- function(years = c(2022, 1969, 1873, 1774),
 
 
           clustering_position,
-        reference_position =
-
-
-          reference_position
+        reference_position = reference_position
       )
 
 
