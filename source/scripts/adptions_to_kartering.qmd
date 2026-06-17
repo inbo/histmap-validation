@@ -1,0 +1,970 @@
+---
+title: "Aanpassing functies"
+author: "Robrecht Dockx"
+format: pdf
+editor: source
+---
+
+# Aanpassing van de de formules aan de data
+
+```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE}
+
+library(tidyverse)
+library(terra)
+library(git2rdata)
+library(plotly)
+library(sf)
+library(INBOtheme)
+library(assertthat)
+library(caret)
+library(rprojroot)
+library(devtools)
+devtools::install_github("gbganalyst/forstringr")
+library(forstringr)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                  comment = "", error = FALSE)
+
+git_root <- rprojroot::find_root(rprojroot::is_git_root)
+source(file.path(git_root, "source/scripts/nca_functions.R"))
+
+data_folder <-  find_root_file("data",
+                             criterion = has_file(
+                               "histmap_validation_quarto.Rproj"))
+
+data <- read.csv(paste0(data_folder, "/legende_attribuuttabel.xlsx - validatiepunten_timeseries.csv"), 
+                        header = TRUE, encoding = "UTF-8")
+
+data_LU <- read.csv(paste0(data_folder, "/raster_report_LUC.xlsx - report land use change categori.csv"), 
+                        header = TRUE, encoding = "UTF-8")
+
+# Functions 
+
+source("./clustering_functions.R")
+source("./nca_functions.R")
+
+
+```
+
+# De data
+
+Gedurende de analyses zal er gebruik gemaakt worden van twee datasets: 
+
+- Een [dataset](https://docs.google.com/spreadsheets/d/1Qk7hgajuzkvmWGGcqCOz3KUxLxcIr0KE/edit?gid=1736581617#gid=1736581617) met de geobserveerde waarde en referentiewaarde. 
+
+Deze dataset bevat `r dim(data)[1]` observaties en `r dim(data)[2]` variabelen. De observaties vertegenwoordigen punten die gestratificeerd zijn getrokken uit een puntenwolk. Voor elk van de 30 verschillende strata, waarbij een stratum een type landgebruik representeert, werden punten getrokken. De punten werden binnen elk stratum getrokken op volgorde van toenemende ID. In totaal werden er 2448 punten geselecteerd uit de puntenwolk en op de kaart van 1969 als uitgangspunt. Alle punten in de overlay met een landgebruik dat tussen 1778 en 1969 niet veranderde, zijn gevalideerd. Voor de punten die behoren tot klassen met landgebruik dat tussen 1778 en 1969 wel veranderde en waarvan minimaal 10 punten in de overlay voorkomen, werd 30% gevalideerd (dus minimaal 3 punten). De belangrijkste variabelen zijn `r knitr::combine_words(colnames(data)[c(dim(data)[2]-1, dim(data)[2])], and = " en ")`, welke respectievelijk de referentiewaarde en de geobserveerde waarde aangeven.
+
+- Een [dataset](https://docs.google.com/spreadsheets/d/1yI-kd37vwDwbLmGGfeZnF1-fiEj1Gzot/edit?gid=1403611980#gid=1403611980) met alle mogelijke veranderingen in landgebruik (LU) zijn er in totaal $9^4$ (`r 10**4`) combinaties, aangezien er 9 verschillende landgebruikstypes en 4 verschillende tijdstippen zijn. De dataset bevat echter slechts `r dim(data_lu)[1]` van deze mogelijkheden. Voor elke combinatie worden de totale oppervlakte (in $m^2$ en ha) en de cumulatieve oppervlakte (in ha en %) weergegeven.
+
+| LU nummer |LU naam                        |
+|:---------:|:-----------------------------:|
+|9          |water                          |
+|8          |boomgaard                      |            
+|7          |moeras                         |
+|6          |strand, slikke en schorre      |
+|5          |heide en duinen                |
+|4          |grasland                       |
+|3          |bos                            |
+|2          |bebouwing, tuin, infrastructuur|
+|1          |akker                          |
+
+: De gebruikte landgebruikstypes
+
+```{r data_cleaning}
+cols <- c("X1850_true", 
+          "X1904_tru", 
+          "X1939_tru", 
+          "X1981_tru", 
+          "X1989_tru", 
+          "X1774_true", 
+          "X1873_true", 
+          "X1969_true", 
+          "ref")
+new_cols <- c("1850", 
+          "year_1904", 
+          "year_1939", 
+          "year_1981", 
+          "year_1989", 
+          "year_1774", 
+          "year_1873", 
+          "year_1969", 
+          "year_2022")
+data <- data %>%
+  mutate(ref = as.integer(
+    str_sub(
+      as.character(
+        LU_2022_1969_1873_1774_pred), start = 1, end = 1))) %>% 
+  rename_at(vars(cols),  ~ new_cols) %>% 
+  rename(reference = LU_1969_1873_1774_true, 
+         observed = LU_2022_1969_1873_1774_pred) %>% 
+  mutate(reference_comp = as.integer(paste0(year_1969,
+                                 year_1873, 
+                                 year_1774)), 
+         reference_comp4 = as.integer(paste0(year_2022, 
+                                  year_1969, 
+                                  year_1873, 
+                                  year_1774))) %>% 
+  mutate(
+  across(all_of(new_cols), 
+         ~case_when(.x == 9 ~ "water", 
+                    .x == 8 ~ "boomgaard",
+                    .x == 7 ~ "moeras",
+                    .x == 6 ~ "strand, slikke en schorre",
+                    .x == 5 ~ "heide en duinen",
+                    .x == 4 ~ "grasland",
+                    .x == 3 ~ "bos",
+                    .x == 2 ~ "bebouwing, tuin, infrastructuur",
+                    .x == 1 ~ "akker")
+           )) %>% 
+  mutate(
+    across(all_of(new_cols), as.factor))
+
+
+```
+
+## Initiële data verkenning 
+
+
+
+```{r sanity_checks}
+
+# Combination of seperate 3 year equal to the reference
+check1 <- identical(data$reference, data$reference_comp)
+
+# Ckeck length of reference 
+check2 <- length(which(nchar(data$reference_comp4) != 4)) == 0
+check2_fail <- data[which(nchar(data$reference_comp4) != 4),] %>% select(fid)
+data <- data %>% subset(!fid  %in% check2_fail$fid)
+
+# Check elements of observed
+check3 <- length(which(nchar(data$observed) != 4)) == 0
+check3_fail <- data[which(nchar(data$observed) != 4),]
+
+# Na in reference 
+check4 <- all(!is.na(data$reference))
+
+# Na in observed
+check5 <- all(!is.na(data$observed))
+
+```
+
+De volgende controles werden uitgevoerd om de consistentie van de gegevens te waarborgen:
+
+- Of de referentie identiek is aan de afzonderlijke referentiejaren
+
+De referentie was identiek aan de afzonderlijke referentiejaren. 
+
+- Of de lengte van de referentie precies 3 is
+
+Er werden `r dim(check2_fail)[1]` observaties gevonden met een waarde verschillend van 3 (fid zijn `r knitr:: combine_words(check2_fail$fid, and = " en ")`. 
+
+- Of de lengte van de observatie precies 4 is
+
+Er werden `r dim(check3_fail)[1]` observaties gevonden met een waarde verschillend van 4 (fid zijn `r knitr:: combine_words(check3_fail$fid, and = " en ")`.
+
+- Er werden geen ontbrekende data gedetecteerd voor de referentiewaarde en de geobserveerde waarden 
+
+```{r data_clean2}
+
+data <- data %>% 
+  mutate(observed3 = ifelse(nchar(observed) == 3, 
+                             observed, 
+                             str_right(observed, 3)), 
+         observed = ifelse(nchar(observed) == 4, 
+                                 observed, 
+                                 paste0("0", observed)), 
+         across(c(reference, observed3), as.factor))
+
+# Check elements of observed
+check3 <- length(which(nchar(data$observed) != 4)) == 0
+check3_fail <- data[which(nchar(data$observed) != 4),]
+
+```
+
+
+```{r calculate_accuracy_raw_data}
+
+# res1 <- calculate_accuracy(mapdata = data$observed3, refdata = data$reference)
+
+## the reference and the observed data do not have the same levels, they do have the same amount of levels but not the same levels. 
+
+## relevel to the same amount of levels 
+
+data <- data %>% mutate(
+  observed = factor(as.character(observed)), 
+  reference_comp4 = factor(as.character(reference_comp4))
+)
+
+intersect <- lubridate::intersect(levels(data$observed), levels(data$reference_comp4))
+difference <- outersect(levels(data$observed), levels(data$reference_comp4))
+all_levels <- lubridate::union(levels(data$observed), levels(data$reference_comp4))
+
+
+
+data <- data %>% mutate(
+  observed = factor(observed, levels = all_levels),
+  reference = factor(reference_comp4, levels = all_levels)
+)
+
+
+## Calculate on relveled variables
+
+res1 <- calculate_accuracy(mapdata = data$observed, refdata = data$reference)
+
+# round(100 * unname(res1$overall["Accuracy"]), digits = 2)
+# UA PA
+# UA = precision (this does NOT equal specificity) = positive predictive value
+# PA = recall = sensitivity = true positive fraction
+# als de waarde voor SP en SE, PPV, NPV NA wil dit zeggen dat ze eigenlijk 0 is (teller = 0) 
+# bij NAN kan hij ze niet bepalen (noemer = 0)
+# t(res1$byClass) |> round(digits = 2)
+
+tempdata <- flextable(as.data.frame(t(res1$byClass)) %>% 
+                        round(digits = 2) %>% 
+                        rownames_to_column(var = " "))
+
+```
+
+  In totaal zijn er `r length(all_levels)**2` verschillende combinaties mogelijk en er zijn slechts `r dim(data)[1]` observaties. Dit geeft aanleiding tot een groot aantal ontbrekende en laag aantal observaties op zowel de diagonaal als niet diagonaal waarden van de error matrix.  Hierdoor kan er geen goede bepaling gedaan worden van de UA, PA en OA. Om dit probleem op te lossen zullen de observaties geclusterd worden
+  
+## Clustering
+
+Er werden in totaal 6 verschillende functies geschreven om de observaties te clusteren: 
+
+(@) mask_follow_up
+
+**Doel**
+
+De functie mask_follow_up clustert een reeks landgebruikscodes (LU-codes) op basis van een opgegeven clusteringpositie. Dit betekent dat alle opeenvolgende karakters na de clusteringpositie worden gecontroleerd en vervangen door "X" zodra een verschil wordt gedetecteerd.
+
+**Parameters**
+
+- variable (character vector): Een vector met landgebruikscodes, elk bestaande uit een reeks karakters.
+- clustering_position (integer): De index van het karakter waarop clustering wordt gebaseerd. Dit is de startpositie van de clustering.
+
+**Voorbeeld**
+
+Input:
+
+```{r eval = FALSE, include = TRUE}
+mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2)
+```
+output:
+
+```{r echo = FALSE}
+mask_follow_up(c("11123", "22345", "33333"), clustering_position = 2)
+```
+
+(@) mask_follow_up_intensity
+
+**Doel**
+
+De functie mask_follow_up_intensity bouwt verder op mask_follow_up, maar voegt extra logica toe om de intensiteit van het landgebruik te bepalen. Dit wordt gedaan door te kijken of het landgebruik als intensief of extensief wordt geclassificeerd.
+
+**Parameters**
+
+- variable (character vector): Een vector met landgebruikscodes.
+- LU-klassen (akker, bebouwing, ..., water) (integers, standaardwaarden 1 t/m 9): Codering voor verschillende typen landgebruik.
+    clustering_position (integer): De startpositie van de clustering.
+
+**Voorbeeld**
+
+Input:
+
+```{r eval = FALSE, include = TRUE}
+mask_follow_up_intensity(c("11123", "22345", "33333"), clustering_position = 2)
+```
+output:
+
+```{r echo = FALSE}
+mask_follow_up_intensity(c("11123", "22345", "33333"), clustering_position = 2)
+```
+
+(@) make_bin_change
+
+**Doel**
+
+De functie make_bin_change vergelijkt de LU-code op twee specifieke posities en bepaalt of er een verandering in landgebruik heeft plaatsgevonden.
+
+**Parameters**
+
+- variable (character vector): Een vector met landgebruikscodes.
+- clustering_position (integer): De index van het karakter dat als startpunt wordt gebruikt.
+- reference_position (integer): De index van het karakter dat als referentie wordt gebruikt.
+
+
+**Voorbeeld**
+
+Input:
+```{r echo = TRUE, eval = FALSE}
+make_bin_change(c("12345", "22345", "33445"), clustering_position = 1, reference_position = 3)
+```
+Output:
+
+```{r echo = FALSE}
+make_bin_change(c("12345", "22345", "33445"), clustering_position = 1, reference_position = 3)
+```
+
+Hier wordt gekeken of het 1e karakter (clustering) en het 3e karakter (referentie) gelijk zijn.
+
+(@) change_frequency
+
+**Doel**
+
+Deze functie analyseert hoe vaak en op welke manier landgebruik (LU) is veranderd tussen twee tijdstippen: een referentiejaar en een clusteringjaar. Het classificeert de verandering in verschillende categorieën, zoals stabiel, verschoven of volledig dynamisch.
+
+**Parameters**
+
+- variable (character vector): Een vector met LU-codes over de tijd.
+- reference_position (integer): De index van de LU-code in het referentiejaar.
+- clustering_position (integer): De index van de LU-code in het clusteringjaar.
+
+**Uitvoer**
+
+De functie geeft een tekstuele classificatie terug, zoals:
+
+- "Stable (No Change)" =  Geen verandering.
+- "Reverted (1 LU in between)" =  Eén tussenliggende LU die uiteindelijk terugkeert naar het originele LU.
+- "Shifted (1 Change)" =  Eén verandering zonder terugkeer naar het originele LU.
+- "Reverted (2 LUs in between)" =  Twee tussenliggende LU’s die terugkeren naar het originele LU.
+- "Shifted (2 LU Changes)" =  Twee LU-wijzigingen zonder terugkeer.
+- "Fully Dynamic (All Different)" =  Elk LU in de reeks is uniek.
+- "Multiple changes" =  Andere patronen van verandering.
+
+Input:
+```{r echo = TRUE, eval = FALSE}
+change_frequency(c("12345", "22345", "33445"), clustering_position = 1,
+         reference_position = 3)
+```
+Output:
+
+```{r echo = FALSE}
+change_frequency(c("12345", "22345", "33445"), clustering_position = 1,
+         reference_position = 3)
+```
+
+(@) presence
+
+**Doel**
+
+Deze functie bepaalt of een bepaalde landgebruiksklasse (LU) aanwezig, afwezig, verworven of verloren is in een bepaalde periode.
+
+**Parameters**
+
+- variable (character vector): Een vector met LU-codes.
+- clustering_position (integer): De startpositie voor de analyse.
+- reference_position (integer): De eindpositie voor de analyse.
+- LU (character): De specifieke LU-code waarvoor de aanwezigheid wordt gecontroleerd.
+
+**Uitvoer**
+
+De functie retourneert een van de volgende categorieën:
+
+- "Stable presence" → De LU is gedurende de hele periode aanwezig.
+- "Stable absence" → De LU is nooit aanwezig.
+- "Stable loss" → De LU verdwijnt vroeg in de periode en komt niet terug.
+- "Eventual loss" → De LU verdwijnt later in de periode.
+- "Eventual gain" → De LU verschijnt later in de periode.
+- "Stable gain" → De LU is aanwezig vanaf het begin en blijft bestaan.
+- "Intermittent Presence" → De LU is soms aanwezig en soms niet.
+
+Input:
+```{r echo = TRUE, eval = FALSE}
+presence(c("12345", "22345", "33445"), clustering_position = 1,
+         reference_position = 3, LU = 4)
+```
+Output:
+
+```{r echo = FALSE}
+presence(c("12345", "22345", "33445"), clustering_position = 1,
+         reference_position = 3, LU = 4)
+```
+
+(@) transition_present
+
+**Doel**
+
+Deze functie controleert of een bepaalde overgang (transitie) van LU's voorkomt in een bepaalde periode en classificeert hoe deze transitie zich gedraagt.
+
+**Parameters**
+
+- variable (character vector): Een vector met LU-sequenties over de tijd.
+- transition (character): De overgang van LU’s die wordt gezocht (bijv. "12" voor een overgang van LU 1 naar LU 2).
+- clustering_position (integer): De beginpositie van de analyse.
+- reference_position (integer): De eindpositie van de analyse.
+
+**Uitvoer**
+
+De functie retourneert een tekstuele beschrijving van hoe vaak en in welke vorm de transitie voorkomt, zoals:
+
+- "Transitie 1 keer aanwezig en laatste LU van de transitie duikt niet opnieuw op" → De transitie gebeurt één keer en de laatste LU van de overgang komt niet meer terug.
+- "Transitie minstens 1 keer aanwezig en laatste LU van laatste transitie duikt opnieuw op" → De overgang gebeurt meerdere keren en de laatste LU komt terug.
+- "Niet aanwezig en laatste LU niet aanwezig" → De transitie komt niet voor en de laatste LU is ook niet aanwezig in de sequentie.
+
+Input:
+```{r echo = TRUE, eval = FALSE}
+transition_present(c("12345", "22345", "33445"), clustering_position = 1,
+         reference_position = 3, transition = 23)
+```
+Output:
+
+```{r echo = FALSE}
+transition_present(c("12345", "22345", "33445"), clustering_position = 1,
+         reference_position = 3, transition = 23)
+```
+
+Om het gebruik van bovenstaande functies te vergemakkelijken werd de clustering-functie gecreerd. Deze functie wordt gebruikt om landgebruiksklassen te analyseren en te groeperen op basis van verschillende clustering-methoden. De functie vergelijkt een voorspelde dataset (prediction) met een referentiedataset (reference) over een reeks jaren en past een geselecteerde clusteringmethode toe.
+
+**Parameters**
+
+- years: Een vector met vier jaren waarin landgebruik wordt geanalyseerd.
+- prediction: Voorspelde landgebruikswaarden.
+- reference: Referentiewaarden voor landgebruik.
+- LU: De specifieke landgebruikswaarde om te analyseren.
+- transition: Een specifieke overgang van landgebruik.
+- clustering_year: Het jaar waarin clustering wordt uitgevoerd.
+- clustering_method: De clusteringmethode die wordt toegepast. Mogelijke waarden:
+        "mask_follow_up"
+        "mask_follow_up_intensity"
+        "make_bin_change"
+        "change_frequency"
+        "transition"
+        "presence"
+- akker, bebouwing, bos, ... , water: Codering van landgebruikstypen als numerieke waarden.
+- reference_year: Het jaar waarmee clustering wordt vergeleken.
+
+**Controlemechanismen**
+
+De functie voert verschillende controles uit, zoals:
+
+- Het controleren van de clusteringmethode.
+- Het valideren van de jaren (bijvoorbeeld, ze moeten in aflopende volgorde staan).
+- Het controleren of de voorspelling en referentie even lang zijn en dezelfde niveaus hebben.
+- Het verifiëren van de lengte en het formaat van de landgebruikscodes en overgangen.
+
+**Toepassing van Clusteringmethoden**
+
+De clusteringmethode wordt toegepast met een loop. Voor elke methode:
+
+- Wordt de juiste bewerking uitgevoerd (bijvoorbeeld mask_follow_up, change_frequency, enz.).
+- Wordt de voorspelde en referentiewaarde aangepast.
+- Worden de niveaus van de gegevens consistent gehouden.
+
+Input:
+```{r echo = TRUE, eval = TRUE, include = FALSE}
+# Simulatiedata
+data_test <- data.frame(
+  observed = c("1122", "2233", "3344", "4455"),
+  reference = c("1111", "2222", "3333", "4444")
+)
+
+# Roep de functie aan
+resultaat <- clustering(
+  years = c(2022, 1969, 1873, 1774),
+  prediction = data_test$observed,
+  reference = data_test$reference,
+  LU = "1",
+  transition = "12",
+  clustering_year = 2022,
+  clustering_method = "change_frequency",
+  reference_year = 1774
+)
+```
+
+Output:
+
+```{r echo = FALSE}
+print(resultaat)
+```
+
+
+```{r calc_res1}
+test_clustering <- clustering(clustering_method = c("mask_follow_up",
+                                           "mask_follow_up_intensity",
+                                           "make_bin_change",
+                                           "change_frequency",
+                                           "transition",
+                                           "presence"))
+
+res1 <- calculate_accuracy(mapdata = test_clustering$prediction_change_frequency,
+                           refdata = test_clustering$reference_change_frequency)
+
+round(100 * unname(res1$overall["Accuracy"]), digits = 2)
+# UA PA
+# UA = precision (this does NOT equal specificity) = positive predictive value
+# PA = recall = sensitivity = true positive fraction
+# als de waarde voor SP en SE, PPV, NPV NA wil dit zeggen dat ze eigenlijk 0 is (teller = 0) 
+# bij NAN kan hij ze niet bepalen (noemer = 0)
+tempdata <- flextable(as.data.frame(t(res1$byClass)) %>% 
+                        round(digits = 2) %>% 
+                        rownames_to_column(var = " "))
+  
+```
+
+
+```{r plot_UA_PA}
+
+# Get UA and PA and plot them
+
+data.frame(
+  users = c(res1$byClass[, 5]),
+  producers = c(res1$byClass[, 6]),
+  lu = str_remove(rownames(res1$byClass), "Class: ")
+) %>%
+  mutate(
+    lu = as.factor(lu)
+  ) %>%
+  ggplot() +
+  geom_point(aes(x = users, y = producers, color = lu)) +
+  scale_color_discrete(name = "land use") +
+  xlab("user's accuracy (precision)") +
+  ylab("producer's accuracy (recall)") +
+  theme_bw()
+
+```
+
+# MAPAC and ReGeNesees
+
+BEGIN exploration of other R packages to calculate the statistics instead of 
+relying on hand-coded functions implementing Olofsson et al.
+
+formulae\
+conclusion = the formulae are from a more general class of regression\
+estimators; cf Sarndal model-assisted survey sampling\
+these can be implemented via the general R package for design-based\
+inference "ReGeNesees"\
+also explored "mapac" R package, which also only implemented Olofsson
+
+```{r install}
+
+# install mapac package from gitlab
+if (!c("mapac") %in% installed.packages()) {
+  remotes::install_gitlab(
+    repo = 'pflugmad/mapac',
+    host = 'scm.cms.hu-berlin.de', quiet = F, force = T)
+}
+# install ReGenesees
+if (!c("ReGenesees") %in% installed.packages()) {
+  remotes::install_github("DiegoZardetto/ReGenesees")
+}
+
+```
+
+function confusion_matrix() calculates the map-relevant version of error matrix map-relevant means that each p_ij is weighted by area proportions for each stratum (map class) so this is different from default caret::confusionMatrix which was used in function calculate_accuracy() see https://pages.cms.hu-berlin.de/EOL/gcg_eo/06_accuracy_assessment.html
+
+```{r cluster_area}
+
+# Performing the clustering on the surface data 
+## Hier zelfde probleem zijn de getallen van velue < 1000 oof values waarbij de 
+## eerste cijfers moeten vervangen worden door "0"
+
+data_LU <- data_LU %>% dplyr::filter(value >= 1000) %>% 
+  mutate(value = as.character(value))
+
+data_LU_clus <- clustering_area(data_LU$value, 
+                                clustering_method = c("change_frequency", 
+                                                      "presence"))
+
+data_LU_merge <- merge(data_LU, data_LU_clus, 
+                       by.x = "value", by.y = "reference") %>% 
+  select(!c(Cumul_ha, Cumul_.))
+
+## get area per cluster 
+
+data_LU_area_clus <- data_LU_merge %>% group_by(reference_change_frequency) %>% 
+  summarise(area_ha = sum(ha, na.rm = TRUE), 
+            area_m2 = sum(m2, na.rm = TRUE)) %>% 
+  column_to_rownames(var = "reference_change_frequency")
+
+```
+
+
+```{r confusion_matrix}
+
+## Be sure that maparea and ma are ordered in the same manner
+
+cm <- confusion_matrix(
+  maparea = data_LU_area_clus$area_ha,
+  ma = as.data.frame.matrix(res1$table)
+)
+
+```
+
+```{r comp_estimates}
+
+### check if areas are being used in the right strata cause for the functions the variables are not sorted
+
+# using MPAC package
+aa <- mapac::aa_card(
+  data = test_clustering[, c("reference_change_frequency", 
+                             "prediction_change_frequency")],
+  w = data_LU_area_clus$area_ha/sum(data_LU_area_clus$area_ha),
+  strata = levels(factor(test_clustering$reference_change_frequency)),
+  area = sum(data_LU_area_clus$area_ha),
+  confusion_matrix = FALSE,
+  olofsson = TRUE
+)
+
+# using formulas Olafson 
+
+## Overall accuracy
+
+overall_acc <- calc_oa(
+  maparea = data_LU_area_clus$area_ha,
+  ma = as.data.frame.matrix(res1$table)
+)
+
+waldo::compare(overall_acc$oa_est, aa$accuracy[1])
+waldo::compare(sqrt(overall_acc$oa_var), aa$accuracy[2]) ## No differences with MAPAC package
+
+## User accuracy and producer accuracy
+
+ua_pa_df <- calc_ua_pa(
+  maparea = data_LU_area_clus$area_ha,
+  ma = as.data.frame.matrix(res1$table)
+)
+
+ua_pa_df
+waldo::compare(unname(ua_pa_df$ua_est), aa$stats$ua, tolerance = 1e-10)
+waldo::compare(unname(sqrt(ua_pa_df$ua_var)), aa$stats$ua_se, tolerance = 1e-3)
+waldo::compare(unname(ua_pa_df$pa_est), aa$stats$pa, tolerance = 1e-10)
+waldo::compare(unname(sqrt(ua_pa_df$pa_var)), aa$stats$pa_se, tolerance = 1e-3)
+
+## No major differences with MAPAC package 
+
+
+```
+
+```{r}
+# estimate areas using ReGenesees
+#################################
+observed_changes_RD <- data.frame(
+  map = as.factor(test_clustering$prediction_change_frequency),
+  ref = as.factor(test_clustering$reference_change_frequency))   %>%
+  mutate(
+    map = factor(map, levels = sort(unique(c(levels(map), levels(ref))))),
+    map = factor(map, levels = levels(map))
+  ) %>% left_join(data_LU_area_clus %>% rownames_to_column(var = "ref"), 
+                  by = "ref")
+
+##  moet dit bij ref of bij map. Want dat gaat een verschil maken. Geen 
+## groot verschil maar wel een verschil
+
+n_h <- observed_changes_RD |>
+  count(map)
+
+maparea_RD <- data_LU_area_clus %>% rownames_to_column(var = "map") |>
+  left_join(n_h, by = "map") |>
+  mutate(
+    ips = n / area_ha
+  )
+
+areas_df <- calc_areas(
+  maparea = maparea_RD$area_ha,
+  ma = as.data.frame.matrix(res1$table),
+  pixelsize = 0.01 # each cell is 100 square meters = 0.01ha
+)
+
+prop_area_h <- observed_changes_RD |>
+  distinct(map, area_ha) %>% 
+  mutate(
+    prop_area_ha = area_ha / sum(area_ha)
+  )
+
+observed_changes_RD <- left_join(observed_changes_RD %>% select(!c(area_ha)), 
+                                 maparea_RD, by = "map")
+
+# area Flanders
+sum(prop_area_h$area_ha) ## kleine 10000 ha te weinig
+sum(prop_area_h$area_m2)/10**6 ## kleine 100 km2 te weinig
+
+# check if total area matches
+sum(aa$area$area) - sum(prop_area_h$area_ha)
+
+# create survey data.frame (long format)
+# the variable oa is needed for estimation
+svydata <- observed_changes_RD |>
+  mutate(
+    weights = 1 / ips,
+    ids = paste0("id_", 1:n()),
+    ones = 1,
+    oa = as.numeric(map == ref)
+  ) |>
+  mutate(
+    n_ref = n(),
+    .by = ref
+  ) |>
+  inner_join(
+    prop_area_h |> select(!c(area_ha)), by = join_by(map)
+  ) %>% 
+  mutate(
+    map = factor(map), 
+    ref = factor(ref)
+  )
+
+# create design object (could deal with more complex models)
+design <- ReGenesees::e.svydesign(
+  data = svydata,
+  ids = ~ ids,
+  strata = ~ map,
+  weights = ~ weights,
+  fpc = ~ ips)
+
+# create dataframe containing marginal population totals
+df.pop <- ReGenesees::pop.template(
+  data = svydata,
+  calmodel = ~ map - 1
+) # see what the template should look like
+ReGenesees::pop.desc(df.pop)
+df.pop <- maparea_RD |>
+  select(map, area_ha) |>
+  pivot_wider(
+    names_from = map,
+    names_prefix = "map",
+    values_from = area_ha) |>
+  as.data.frame()
+
+# calibrate on map marginal totals
+# this adds the calibration weights to the design
+cal <- ReGenesees::e.calibrate(
+  design = design,
+  df.population = df.pop,
+  calmodel = ~ map - 1
+)
+summary(cal)
+# but because in this case,
+# the ratio between calibrated weights and initial weights equals 1;
+# using cal or design in estimation will have the same result
+# this is because inverse probability weights (N_h/n_h) already
+# incorporate the map marginal totals per stratum
+# this would not be the case if we calibrate on different strata or
+# additional strata or use other/extra auxiliary information
+# the calibration weights are stored in cal$variables$weights.cal
+ReGenesees::g.range(cal)
+
+# check calibration
+ReGenesees::check.cal(cal)
+summary(weights(cal))
+ReGenesees::svystatTM(cal, ~ ones) # area of Flanders in 0.01 ha units
+
+# estimate areas for ref
+cal_ref_areas <- ReGenesees::svystatTM(
+  design = cal,
+  y =  ~ ref,
+  estimator = "Total",
+  conf.int = TRUE,
+  deff = TRUE)
+# note that above with y = ~ map would just recover known marginal totals (SE=0)
+waldo::compare(aa$area$area, cal_ref_areas$Total, tolerance = 1e-10)
+waldo::compare(aa$area$area_ci, 1.96*cal_ref_areas$SE, tolerance = 1e-4)
+```
+
+```{r}
+
+# can we estimate the areas also via Bayes formula?
+# $P(\text{referentie}=A) = \frac{UA}{PA}P(\text{kaart} = A)$
+# first a naive attempt for just the estimator without SE
+waldo::compare(
+  aa$area$area, aa$stats$ua / aa$stats$pa * maparea_RD$area_ha,
+  tolerance = 1e-4
+) # only difference is one NA resulting from division pa 0
+plot(aa$area$area, aa$stats$ua / aa$stats$pa * maparea_RD$area_ha)
+abline(0, 1)
+# how to estimate $\frac{UA}{PA}P(\text{kaart} = A)$ with ReGenesees?
+# oa = n_jj = variable equalling one if ref == map, 0 otherwise
+# n = n_i. = n_map the sample size per map stratum
+# n_ref = n_.k = the number of ref cases
+# UA / PA = (n_jj / n_i. ) / (n_jj / n_.k ) simplifies to n_.k / n_i.
+# P(\text{kaart} = i) = area_i
+#  n_.k / n_i. * area_i = sum over i of n_ik / n_i. * area_i
+# compare with eq 9 Olofsson:
+# W_i = area proportion of map class i = area_i / area_tot
+# n_ik = cell count map i ref k
+# n_i. = row sum map i
+# area estimator for ref class k =
+# total map area times sum over i (from 1 to 25) of W_i * n_ik/n_i.
+# which again equals sum over i (from 1 to 25) of area_i * n_ik/n_i.
+
+# note that area_i/n_i. are inverse probability weights
+# because our survey data are in long format, we can
+# represent n_ik as a vector of ones in combi with by = ~ref
+# to obtain the same as before using either an expression in svystatL or
+cal_ref_areas_checkL <- ReGenesees::svystatL(
+  design = cal,
+  expr =  expression(ones),
+  by = ~ ref,
+  conf.int = TRUE,
+  deff = TRUE)
+cal_ref_areas_checkTM <- ReGenesees::svystatTM(
+  design = cal,
+  y =  ~ ones,
+  by = ~ ref,
+  conf.int = TRUE,
+  deff = TRUE)
+waldo::compare(cal_ref_areas_checkL$ones, cal_ref_areas$Total)
+waldo::compare(cal_ref_areas_checkTM$Total.ones, cal_ref_areas$Total)
+waldo::compare(cal_ref_areas_checkL$SE.ones, cal_ref_areas$SE)
+waldo::compare(cal_ref_areas_checkTM$SE.Total.ones, cal_ref_areas$SE)
+```
+
+
+
+```{r accuracy_regenesees}
+# can it also be used to calculate OA, UA and PA?
+# OA: YES
+cal_oa <- ReGenesees::svystatTM(
+  design = cal,
+  y =  ~ oa,
+  estimator = "Mean",
+  conf.int = TRUE,
+  deff = TRUE)
+waldo::compare(aa$accuracy[1], cal_oa$Mean, tolerance = 1e-10)
+waldo::compare(aa$accuracy[2], cal_oa$SE, tolerance = 1e-5)
+
+# UA: YES
+# (which need be estimated by row of contingency table which means by "map")
+cal_ua <- ReGenesees::svystatTM(
+  design = cal,
+  y =  ~ oa,
+  by = ~ map,
+  estimator = "Mean",
+  conf.int = TRUE,
+  deff = TRUE)
+waldo::compare(aa$stats$ua, cal_ua$Mean.oa, tolerance = 1e-10)
+waldo::compare(aa$stats$ua_se, cal_ua$SE.Mean.oa, tolerance = 1e-2) # more conservative
+hist(aa$stats$ua_se -  cal_ua$SE.Mean.oa)
+plot(aa$stats$ua_se, cal_ua$SE.Mean.oa)
+abline(0, 1)
+
+# PA
+cal_pa <- ReGenesees::svystatTM(
+  design = cal,
+  y =  ~ oa,
+  by = ~ ref,
+  estimator = "Mean",
+  conf.int = TRUE,
+  deff = TRUE)
+waldo::compare(aa$stats$pa, cal_pa$Mean.oa, tolerance = 1e-10)
+waldo::compare(aa$stats$pa_se, cal_pa$SE.Mean.oa, tolerance = 1e-2)
+hist(aa$stats$pa_se -  cal_pa$SE.Mean.oa)
+plot(aa$stats$pa_se, cal_pa$SE.Mean.oa)
+abline(0, 1)
+
+areas_df %>%
+  inner_join(
+    aa$stats, by = join_by(class)
+  ) %>%
+  # separate(
+  #   class,
+  #   c("class_p1", "class_p2"),
+  #   sep = "-",
+  #   remove = FALSE
+  # ) %>%
+  # mutate(change = class_p1 != class_p2) %>%
+  mutate(
+    class = reorder(
+      sprintf(
+        "%s\n(n = %s; ua = %s; pa = %s)",
+        class, n_points, round(ua, 2), round(pa, 2)
+        ),
+      area_est_ha
+    )
+  ) %>%
+  ggplot() +
+  geom_pointrange(
+    aes(
+      x = class,
+      y = area_est_ha,
+      ymin = area_low_ha,
+      ymax = area_high_ha,
+      colour = area_low_ha < 0
+    )
+  ) +
+  scale_y_log10() +
+  coord_flip() 
+# +
+#   facet_grid(paste0("Change: ", change) ~ ., scales = "free", space = "free")
+
+# relative margins of error larger than 1 result in
+# negative lower bound of design-based confidence interval
+areas_df %>%
+  # separate(
+  #   class,
+  #   c("class_p1", "class_p2"),
+  #   sep = "-",
+  #   remove = FALSE
+  # ) %>%
+  # mutate(change = class_p1 != class_p2) %>%
+  mutate(
+    class = reorder(class, area_rme),
+    fprop_map_rbias = cut(
+      prop_map_rbias,
+      breaks = c(
+        min(prop_map_rbias) - 0.01,
+        -0.1,
+        0.1,
+        1,
+        max(prop_map_rbias) + 0.01
+      ),
+      labels = c(
+        "Underestimation\nmore than 10%",
+        "Relative bias\nbetween -10% and 10%",
+        "Overestimation\nbetween 10% and 100%",
+        "Overestimation\nmore than 100%"
+      )
+    )
+  ) %>%
+  ggplot() +
+  geom_point(
+    aes(
+      x = class,
+      colour = fprop_map_rbias,
+      y = area_rme,
+      size = abs(prop_map_rbias)
+    )
+  ) +
+  scale_y_continuous(
+    name = "Relative margin of error",
+    labels = scales::percent
+  ) +
+  coord_flip() 
+# +
+#   facet_grid(paste0("Change: ", change) ~ ., scales = "free", space = "free")
+
+# bias - variance tradeoff is always in favor of area estimation via sample
+# except for field-field, which is better estimated from pixel counting
+# as judged by mean squared error = variance + bias^2
+# and assuming variance is zero for the map and bias is zero for the sample
+areas_df %>%
+  # separate(
+  #   class,
+  #   c("class_p1", "class_p2"),
+  #   sep = "-",
+  #   remove = FALSE
+  # ) %>%
+  # mutate(change = class_p1 != class_p2) %>%
+  mutate(
+    class = reorder(class, prop_map_bias)
+  ) %>%
+  ggplot() +
+  geom_point(
+    aes(
+      x = class,
+      y = prop_map_bias,
+      size = area_rme,
+      colour = prop_mse_map < prop_mse_sample
+    ),
+    alpha = 0.3
+  ) +
+  geom_hline(yintercept = 0) +
+  scale_y_continuous(
+    "Under (-) or over (+) estimation\nPercentage of area of interest",
+    labels = scales::percent
+  ) +
+  #  scale_colour_gradient2(midpoint = 0, mid = "white") +
+  coord_flip() 
+# +
+#   facet_grid(paste0("Change: ", change) ~ ., scales = "free", space = "free")
+
+```
+

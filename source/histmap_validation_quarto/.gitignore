@@ -9,13 +9,8 @@
 *.shx
 *.xls*
 *_files
+/_extensions
 *.tmp
-*.css
-*.tex
-*.json
-*.cff
-*.csv
-*.RDS
 .DS_Store
 .RData
 .Renviron
@@ -39,4 +34,5 @@ renv/library
 /site_libs
 /vlaamse-overheid.pdf
 /vlaanderen-wetenschap.pdf
-.positai
+
+**/*.quarto_ipynb

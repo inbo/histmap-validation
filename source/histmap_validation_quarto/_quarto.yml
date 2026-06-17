@@ -1,0 +1,123 @@
+project:
+  type: flandersqmd-book
+  preview:
+    port: 4201
+    browser: true
+  render:
+    - "*.md"
+    - "*.qmd"
+    - "!LICENSE.md" #ignore LICENSE.md
+    - "!README.md" #ignore README.md
+  output-dir: ../../output
+
+execute:
+  echo: false
+  freeze: auto
+
+lang: nl-BE # nl-BE, fr-FR
+
+bibliography: references.bib
+
+format:
+  flandersqmd-book-html: default
+  flandersqmd-book-pdf: default
+
+flandersqmd:
+  entity: INBO
+  level: 2
+  title:  Kartering historische landgebruiksveranderingen (mask_follow_up)
+  subtitle:
+  author:
+    - name:
+        given: Robrecht
+        family: Dockx
+      email: robrecht.dockx@inbo.be
+      corresponding: true
+      orcid: 0000-0002-3473-1931
+      affiliation:
+        - Government of Flanders
+    - name:
+        given: Hans
+        family: Van Calster
+      email: hans.vancalster@inbo.be
+      corresponding: FALSE
+      orcid: 0000-0001-8535-8426
+      affiliation:
+        - Government of Flanders
+    - name:
+        given: Luc
+        family: De Keersmaeker
+      email: luc.dekeersmaeker@inbo.be
+      orcid: 0000-0001-9709-512X
+      affiliation:
+        - Government of Flanders
+  reviewer:
+    - name:
+        given: First
+        family: Reviewer
+      email: reviewer@vlaanderen.be
+      orcid: 0000-0002-1825-0097
+      affiliation:
+        - Government of Flanders
+  year: 2025
+  reportnr: 3.14
+  cover:
+  coverphoto: https://www.pexels.com/nl-nl/foto/hout-natuur-rood-creatief-4599227
+  coverdescription: Detail of a leaf. Photo by [Skyler Ewing](https://www.pexels.com/nl-nl/@skyler-ewing-266953?utm_content=attributionCopyText&utm_medium=referral&utm_source=pexels) via [Pexels](https://www.pexels.com/nl-nl/foto/hout-natuur-rood-creatief-4599227/?utm_content=attributionCopyText&utm_medium=referral&utm_source=pexels)
+  ordernr: optional order number
+  depotnr: optional depot number
+  doi: 10.5281/zenodo.842223
+  watermark:
+  public_report: FALSE
+  colophon: true
+  client:
+    - INBO Brussel
+    - VAC Brussel ‐ Herman Teirlinck
+    - Havenlaan 88 bus 73
+    - 1000 Brussel
+  clienturl: https://www.vlaanderen.be/inbo/en-gb
+  clientlogo:
+  cooperation:
+    - INBO Brussel
+    - VAC Brussel ‐ Herman Teirlinck
+    - Havenlaan 88 bus 73
+    - 1000 Brussel
+  cooperationurl: https://www.vlaanderen.be/inbo/en-gb
+  cooperationlogo:
+
+
+book:
+  title: "Kartering historische landgebruiksveranderingen (mask_follow_up)"
+  author: "Robrecht Dockx"
+  date: "`r format(Sys.time(), '%d %B, %Y')`"
+  chapters:
+    - index.qmd
+    - intro.qmd
+    - summary.qmd
+    - accuracy.qmd
+    - validatie.qmd
+    # - references.qmd
+  downloads: pdf
+  open-graph: true
+  sidebar:
+    logo: cover.png
+  body-footer: '{{< footer >}}'
+  navbar:
+    left:
+      - text: Cover
+        file: index.qmd
+    right:
+      - icon: mastodon
+        href: https://mastodon.online/@inbo
+      - icon: facebook
+        href: https://www.facebook.com/INBOVlaanderen/
+      - icon: github
+        menu:
+          - text: Source Code
+            url:  https://github.com/inbo
+          - text: Report a Bug
+            url:  https://github.com/inbo
+    pinned: true
+
+
+

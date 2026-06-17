@@ -1,0 +1,151 @@
+# Validation
+
+
+```{r libraries, echo = FALSE, message = FALSE, comment= "", error = FALSE, warning = FALSE}
+
+library(tidyverse)
+library(terra)
+library(git2rdata)
+library(plotly)
+library(sf)
+library(INBOtheme)
+library(assertthat)
+library(caret)
+library(rprojroot)
+library(devtools)
+devtools::install_github("gbganalyst/forstringr")
+library(forstringr)
+library(flextable)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                  comment = "", error = FALSE)
+
+git_root <- rprojroot::find_root(rprojroot::is_git_root)
+source(file.path(git_root, "source/scripts/nca_functions.R"))
+
+data_folder <-  file.path(git_root, "data")
+
+script_folder <-  file.path(git_root, "scripts")
+
+
+data <- read.csv(file.path(data_folder, 
+                           "validatiepunten LU continuity.csv"),
+                 header = TRUE,
+                 encoding = "UTF-8")
+
+data_LU <- read.csv(file.path(data_folder, "raster_report_LUC.xlsx - report land use change categori.csv"), 
+                        header = TRUE, encoding = "UTF-8")
+
+# Functions 
+
+source(file.path(git_root, "source/histmap_validation_quarto/scripts/clustering_functions.R"))
+
+```
+
+Gedurende de analyses zal er gebruik gemaakt worden van twee datasets: 
+
+- Een [dataset](https://docs.google.com/spreadsheets/d/1Qk7hgajuzkvmWGGcqCOz3KUxLxcIr0KE/edit?gid=1pFvL-Q9G6eL9vjfKZkU6SpvM1UZkUc0v) met de geobserveerde waarde en referentiewaarde. 
+
+Deze dataset bevat `r dim(data)[1]` observaties en `r dim(data)[2]` variabelen en zal gebruikt worden om een atnwoord te geven op de volgende vragen: 
+
+- Wat is het effect van postprocessing?
+
+Resulteert de 3 x 3 majority filter, waarbij smalle lijnvormige structuren op de digitalisaties (waterlopen en wegen) gedeeltelijk weggefilterd worden, in een beter resultaat? Hiervoor moeten de validatiepunten respectievelijk voor de velden LU_8T_VAL en LU_8B_VAL worden omgezet naar een code met 4 cijfers (LU op 3 historische tijsdtippen aangevuld met LU in 2022) en vergeleken worden met LU_4T_MAP en LU_4B_MAP. 
+
+- Welke informatie verliezen  door gebruik te maken door slechts 3 historische kaarten te digitaliseren en te gebruiken in de overlays LU_2022_1969_1873_1774.tif en LU_2022_1969_1873_1774_M3.tif, in vergelijking met de 8 die beschikbaar zijn? Er kunnen LU omzettingen gebeurd zijn, die niet gedetecteerd werden met de 3 historische kaarten die gedigitaliseerd werden.
+
+## De dataset
+
+```{r clean_data}
+
+data <- data %>% 
+  rename_with(~ str_replace(.x, "X", ""), 2:17) %>% 
+  rename_with(~ paste0("year_", .x), 2:17) %>% 
+  mutate(across(-c(fid, X, Y), 
+                as.character))
+
+data$check_B <- paste0(
+  data$year_1989_B, 
+  data$year_1981_B, 
+  data$year_1969_B, 
+  data$year_1939_B, 
+  data$year_1904_B, 
+  data$year_1873_B, 
+  data$year_1850_B, 
+  data$year_1774_B
+)
+
+data$check_T <- paste0(
+  data$year_1989_T, 
+  data$year_1981_T, 
+  data$year_1969_T, 
+  data$year_1939_T, 
+  data$year_1904_T, 
+  data$year_1873_T, 
+  data$year_1850_T, 
+  data$year_1774_T
+)
+
+data <- data %>% 
+  mutate(
+    year_2022_B = str_sub(LU4_B_MAP, 1, 1),
+    year_2022_T = str_sub(LU_4T_MAP, 1, 1), 
+    LU_4B_check = paste0(year_2022_B, 
+                         year_1969_B, 
+                         year_1873_B, 
+                         year_1774_B), 
+    LU_4T_check = paste0(year_2022_T, 
+                         year_1969_T, 
+                         year_1873_T, 
+                         year_1774_T))
+
+
+```
+
+```{r checks_data}
+
+which(is.na(data$LU_8B_VAL))
+all(nchar(data$LU_8B_VAL) == 8)
+all(data$check_B == data$LU_8B_VAL)
+check_0 <- which(nchar(data$LU_8B_VAL) != 8)
+check_01 <- which(data$check_B != data$LU_8B_VAL)
+
+check_02 <- which(is.na(data$LU_8T_VAL))
+all(nchar(na.omit(data$LU_8T_VAL)) == 8)
+all(na.omit(data$check_T == data$LU_8T_VAL))
+
+```
+```{r postprocessing}
+
+outcome_B <- data %>% 
+  mutate(output = if_else(LU_4B_check == LU4_B_MAP, 
+                          0, 1, NA)) %>% 
+  summarise(perc = mean(output)*100) %>% 
+  mutate(perc = round(perc, 2)) %>% 
+  pull()
+
+outcome_T <- data %>% 
+  mutate(output = if_else(LU_4T_check == LU_4T_MAP, 
+                          0, 1, NA)) %>% 
+  summarise(perc = mean(output)*100) %>% 
+  mutate(perc = round(perc, 2)) %>% 
+  pull()
+
+
+
+```
+
+
+De dataset bevat enkel de observaties van de jaren `1989, 1981, 1969, 1939, 1904, 1873, 1850 en 1774` voor de puntlocaties (T) en het dominate landgebruik rond deze puntlocaties (B). De LU van het jaar 2022 zit mee in de kolom  `LU_4T_MAP` en `LU_4_B_MAP`. De LU van het jaar 2022 werd uit deze kolommen gehaald en gecombineerd met de individuele LU codes van de jaren 1969, 1873 en 1774. Dit zowel voor de puntlocaties en het venster rond de puntlocatie. Hierdoor verkrijgen we nieuwe LU classificaties `LU_4B_check en LU_4T_check`. Deze werden vergeleken met de respectievelijk `LU_4_B_map en LU_4T_map`. `r outcome_B`% van de gevormde LU codes verschillen met deze in ` LU_4_B_map` en `r outcome_T`% van de gevormde LU codes verschillen met deze in `LU_4T_map`
+
+```{r 4B_mask_follow_up}
+
+test_clustering <- clustering(clustering_method = c(
+  "mask_follow_up"),
+  prediction = data$LU_4B_check,
+  reference = data$LU4_B_MAP, 
+  clustering_year = 2022)
+
+```
+
+
